@@ -1,5 +1,4 @@
 import {
-  ArrowRight,
   CircleDollarSign,
   Receipt,
   ShieldCheck,
@@ -9,18 +8,51 @@ import { useEffect, useMemo, useState } from "react";
 import { ActionRequiredCard } from "../components/dashboard/ActionRequiredCard";
 import { CategorizationFeed } from "../components/dashboard/CategorizationFeed";
 import { MetricCard } from "../components/dashboard/MetricCard";
-import { OptimizationNudgeCard } from "../components/optimization/OptimizationNudgeCard";
 import { EmptyState } from "../components/state/EmptyState";
 import { LoadingState } from "../components/state/LoadingState";
+import { useOptimizationReview } from "../context/OptimizationReviewContext";
 import { getCurrentUser, getDashboardData } from "../services/mockApi";
 import type { DashboardResponse } from "../types/api";
 import type { UserProfile } from "../types/domain";
+import {
+  countIncompleteOptimizationSignals,
+  estimatePendingOptimizationTaxSavingsUpperBound,
+  incompleteOptimizationSignals,
+  mergeOptimizationCompletion,
+} from "../utils/optimizationSignals";
+import { getStateTaxContext } from "../utils/stateTaxContext";
 import { formatCurrency } from "../utils/taxMath";
 
 export function DashboardPage() {
+  const { completedIds } = useOptimizationReview();
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const mergedOptimizationSignals = useMemo(
+    () => mergeOptimizationCompletion(dashboard?.optimizationSignals ?? [], completedIds),
+    [dashboard?.optimizationSignals, completedIds]
+  );
+
+  function handleUpdateTransaction(id: string, patch: Partial<import("../types/domain").Transaction>) {
+    setDashboard((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        transactions: prev.transactions.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+      };
+    });
+  }
+
+  function handleRemoveTransaction(id: string) {
+    setDashboard((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        transactions: prev.transactions.filter((t) => t.id !== id),
+      };
+    });
+  }
 
   useEffect(() => {
     let alive = true;
@@ -38,108 +70,99 @@ export function DashboardPage() {
     return () => { alive = false; };
   }, []);
 
-  const pendingDeductions = useMemo(
-    () => dashboard?.deductions.filter((d) => d.status !== "claimed").length ?? 0,
-    [dashboard?.deductions]
+  /** Aligns with incomplete rows in `optimizationSignals` (each card on /optimization), including user-completed reviews. */
+  const optimizationPendingCount = useMemo(
+    () => countIncompleteOptimizationSignals(mergedOptimizationSignals),
+    [mergedOptimizationSignals]
+  );
+
+  const optimizationPendingSavingsUpperBound = useMemo(
+    () =>
+      estimatePendingOptimizationTaxSavingsUpperBound(
+        incompleteOptimizationSignals(mergedOptimizationSignals),
+        user?.estimatedMarginalTaxRate ?? 0.24,
+        user?.state ?? "TX"
+      ),
+    [mergedOptimizationSignals, user?.estimatedMarginalTaxRate, user?.state]
+  );
+
+  const linkedIncomeTotal = useMemo(
+    () =>
+      dashboard?.transactions
+        .filter((t) => t.type === "income")
+        .reduce((sum, t) => sum + t.amount, 0) ?? 0,
+    [dashboard?.transactions]
+  );
+
+  const stateTaxContext = useMemo(
+    () => getStateTaxContext(user?.state ?? "TX"),
+    [user?.state]
   );
 
   if (isLoading) {
-    return <LoadingState title="Dashboard" description="AI is analyzing your transactions and deduction opportunities..." />;
+    return <LoadingState title="Dashboard" description="Running the numbers…" />;
   }
 
   if (!dashboard || dashboard.transactions.length === 0) {
-    return <EmptyState title="No transactions yet" description="Connect your bank or upload receipts to populate your dashboard." />;
+    return (
+      <EmptyState
+        title="Nothing here yet"
+        description="Connect an account or upload a receipt — we'll fill this right up."
+      />
+    );
   }
 
   const firstName = user?.fullName.split(" ")[0] ?? "Creator";
+  const bracketPct = user?.estimatedMarginalTaxRate
+    ? `${(user.estimatedMarginalTaxRate * 100).toFixed(0)}%`
+    : "";
 
   return (
-    <div className="space-y-6 animate-rise">
+    <div className="space-y-6">
 
-      {/* ── PINNED HERO DIRECTIVE — dominant above everything ─────── */}
-      {pendingDeductions > 0 && (
-        <div
-          className="relative overflow-hidden rounded-2xl px-6 py-5"
-          style={{
-            background: "linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(59,130,246,0.04) 100%)",
-            border: "1px solid rgba(59,130,246,0.28)",
-            boxShadow: "0 0 40px rgba(59,130,246,0.08)",
-          }}
-        >
-          {/* Subtle glow blob */}
-          <div
-            className="pointer-events-none absolute -top-12 -right-12 h-40 w-40 rounded-full blur-3xl"
-            style={{ background: "rgba(59,130,246,0.12)" }}
-          />
-          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div
-                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
-                style={{ background: "rgba(59,130,246,0.15)" }}
-              >
-                <ShieldCheck className="h-5 w-5" style={{ color: "#3B82F6" }} />
-              </div>
-              <div>
-                <p className="text-[15px] font-bold text-[#EDEDED] leading-snug">
-                  You have {pendingDeductions} deduction{pendingDeductions !== 1 ? "s" : ""} to review
-                </p>
-                <p className="text-[13px] mt-0.5" style={{ color: "#888888" }}>
-                  GigATax identified potential savings — confirm them before filing to lock in your refund.
-                </p>
-              </div>
-            </div>
-            <a
-              href="/optimization"
-              className="flex flex-shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-bold transition-all duration-150 active:scale-[0.98]"
-              style={{
-                background: "#3B82F6",
-                color: "#ffffff",
-                boxShadow: "0 0 20px rgba(59,130,246,0.25)",
-              }}
-            >
-              Review Now <ArrowRight className="h-4 w-4" />
-            </a>
-          </div>
-        </div>
-      )}
-
-      {/* ── Page header ────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[11px] font-semibold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(0,255,133,0.7)" }}>
-            Command Center
+      {/* ── Header ─────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-extrabold tracking-[0.12em] uppercase mb-1" style={{ color: "rgba(0,255,133,0.75)" }}>
+            Tax overview
           </p>
-          <h1 className="text-[1.6rem] font-bold text-[#EDEDED] leading-tight">
-            Hey, {firstName}
+          <h1 className="text-[1.75rem] font-extrabold text-[#EDEDED] leading-tight">
+            Hey {firstName} — here&apos;s where you stand.
           </h1>
-          <p className="text-[13px] mt-0.5" style={{ color: "#888888" }}>
-            Tax Year 2026 · California · {user?.estimatedMarginalTaxRate ? `${(user.estimatedMarginalTaxRate * 100).toFixed(0)}% tax bracket` : ""}
+          <p className="text-[13px] mt-1.5" style={{ color: "#a3a3a3" }}>
+            2026 · {user?.state ?? "—"} — {stateTaxContext.note}
           </p>
+          {bracketPct ? (
+            <>
+              <p className="text-[13px] mt-2 text-[#EDEDED]">Marginal rate (demo bracket): {bracketPct}</p>
+              <p className="text-[12px] mt-1 leading-snug" style={{ color: "#666666" }}>
+                From your income band — we&apos;ll help you offset with write-offs you qualify for.
+              </p>
+            </>
+          ) : null}
         </div>
-        {/* Quick CTA */}
         <a
           href="/filing-prep"
-          className="hidden md:flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-all duration-150"
+          className="hidden md:inline-flex flex-shrink-0 items-center justify-center gap-2 self-start rounded-xl px-4 py-2.5 text-[13px] font-extrabold transition-all duration-150 whitespace-nowrap"
           style={{
-            background: "rgba(59,130,246,0.12)",
-            border: "1px solid rgba(59,130,246,0.3)",
+            background: "rgba(59,130,246,0.14)",
+            border: "1px solid rgba(59,130,246,0.35)",
             color: "#3B82F6",
+            boxShadow: "0 0 22px rgba(59,130,246,0.12)",
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(59,130,246,0.2)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(59,130,246,0.12)"; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(59,130,246,0.22)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(59,130,246,0.14)"; }}
         >
-          <TrendingUp className="h-4 w-4" />
-          Review & File
+          Filing prep →
         </a>
       </div>
 
-      {/* ── HERO — Total Tax Savings ────────────────────────────────── */}
-      {/* This is the #1 DOM priority. Largest, most visually striking element. */}
+      {/* ── HERO — Money we saved you ───────────────────────────────── */}
       <MetricCard
-        label="Total Tax Savings Identified"
+        label="Money we saved you"
         value={formatCurrency(dashboard.metrics.totalDeductionsFound)}
-        subtext={`${dashboard.deductions.filter((d) => d.status === "claimed").length} deductions claimed · ${pendingDeductions} pending your review`}
-        icon={<TrendingUp className="h-5 w-5" />}
+        subtext={`${dashboard.deductions.filter((d) => d.status === "claimed").length} confirmed · ${optimizationPendingCount} still pending your review on Optimization`}
+        icon={<TrendingUp className="h-6 w-6" />}
         accent="green"
         hero
       />
@@ -147,16 +170,16 @@ export function DashboardPage() {
       {/* ── Metric row ─────────────────────────────────────────────── */}
       <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
         <MetricCard
-          label="Total 1099 Income"
+          label="Estimated annual income"
           value={formatCurrency(dashboard.metrics.totalIncome)}
-          subtext="Across linked payout platforms"
+          subtext={`Higher of linked payouts (${formatCurrency(linkedIncomeTotal)}) and your estimate (${formatCurrency(user?.estimatedAnnualIncome ?? 0)})`}
           icon={<CircleDollarSign className="h-4 w-4" />}
           accent="blue"
         />
         <MetricCard
-          label="Estimated Tax Liability"
+          label="Estimated tax due"
           value={formatCurrency(dashboard.metrics.estimatedTaxLiability)}
-          subtext="With current deductions applied"
+          subtext={`Demo model scales by ${user?.state ?? "—"} (×${stateTaxContext.liabilityMultiplier.toFixed(2)}) — not tax advice`}
           icon={<ShieldCheck className="h-4 w-4" />}
           accent="amber"
         />
@@ -164,70 +187,89 @@ export function DashboardPage() {
 
       {/* ── Bento grid: AI Feed + right-rail ───────────────────────── */}
       <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        {/* AI Activity Feed — left, dominant */}
-        <CategorizationFeed transactions={dashboard.transactions} />
+        <CategorizationFeed
+          transactions={dashboard.transactions}
+          onUpdateTransaction={handleUpdateTransaction}
+          onRemoveTransaction={handleRemoveTransaction}
+        />
 
-        {/* Right rail */}
         <div className="space-y-6">
-          <ActionRequiredCard pendingCount={pendingDeductions} />
+          {optimizationPendingCount > 0 && (
+            <ActionRequiredCard
+              pendingCount={optimizationPendingCount}
+              maxPotentialTaxSavings={optimizationPendingSavingsUpperBound}
+            />
+          )}
 
-          {/* Deductions claimed summary */}
           <div className="bento-card" style={{ padding: "20px" }}>
             <div className="flex items-center gap-2 mb-4">
               <div
                 className="flex h-7 w-7 items-center justify-center rounded-lg"
-                style={{ background: "rgba(0,255,133,0.1)", color: "#00FF85" }}
+                style={{ background: "rgba(168,85,247,0.12)", color: "#C084FC" }}
               >
                 <Receipt className="h-4 w-4" />
               </div>
-              <h2 className="text-[13px] font-semibold text-[#EDEDED]">Deduction Status</h2>
+              <div>
+                <h2 className="text-[13px] font-extrabold text-[#EDEDED]">Deductions found</h2>
+                <p className="text-[11px] mt-0.5 leading-snug" style={{ color: "#666666" }}>
+                  Savings we flagged for your return.
+                </p>
+              </div>
             </div>
             <div className="space-y-2">
-              {dashboard.deductions.map((ded) => (
-                <div
-                  key={ded.id}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5"
-                  style={{
-                    background: "rgba(255,255,255,0.025)",
-                    border: "1px solid rgba(255,255,255,0.05)",
-                  }}
-                >
-                  <div className="min-w-0">
-                    <p className="text-[12px] font-medium text-[#EDEDED] truncate">{ded.title}</p>
-                    <p className="text-[11px] text-[#555555]">{ded.detail}</p>
+              {dashboard.deductions.map((ded) => {
+                const claimed = ded.status === "claimed";
+                return (
+                  <div
+                    key={ded.id}
+                    className="relative flex items-center justify-between rounded-xl px-3 py-2.5 overflow-visible"
+                    style={{
+                      background: "rgba(255,255,255,0.025)",
+                      border: "1px solid rgba(255,255,255,0.05)",
+                    }}
+                  >
+                    {claimed && (
+                      <span
+                        className="pointer-events-none absolute -top-2 right-3 mn text-[11px] font-extrabold px-2 py-0.5 rounded-md"
+                        style={{
+                          color: "#050505",
+                          background: "#00FF85",
+                          boxShadow: "0 0 18px rgba(0,255,133,0.35)",
+                        }}
+                      >
+                        +{formatCurrency(ded.potentialSavings)}
+                      </span>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold text-[#EDEDED] truncate">{ded.title}</p>
+                      <p className="text-[11px] text-[#666666]">{ded.detail}</p>
+                    </div>
+                    <div className="flex flex-col items-end flex-shrink-0 ml-3">
+                      {!claimed && (
+                        <p className="mn text-[13px] font-bold" style={{ color: "#00FF85" }}>
+                          +{formatCurrency(ded.potentialSavings)}
+                        </p>
+                      )}
+                      <span
+                        className={`chip ${claimed ? "mt-0" : "mt-0.5"}`}
+                        style={
+                          ded.status === "claimed"
+                            ? { background: "rgba(0,255,133,0.1)", color: "#00FF85" }
+                            : ded.status === "in_progress"
+                            ? { background: "rgba(59,130,246,0.1)", color: "#3B82F6" }
+                            : { background: "rgba(255,255,255,0.06)", color: "#888888" }
+                        }
+                      >
+                        {ded.status === "claimed" ? "Claimed" : ded.status === "in_progress" ? "In progress" : "Available"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end flex-shrink-0 ml-3">
-                    <p className="mn text-[13px] font-semibold" style={{ color: "#00FF85" }}>
-                      +{formatCurrency(ded.potentialSavings)}
-                    </p>
-                    <span
-                      className="chip mt-0.5"
-                      style={
-                        ded.status === "claimed"
-                          ? { background: "rgba(0,255,133,0.1)", color: "#00FF85" }
-                          : ded.status === "in_progress"
-                          ? { background: "rgba(59,130,246,0.1)", color: "#3B82F6" }
-                          : { background: "rgba(255,255,255,0.06)", color: "#888888" }
-                      }
-                    >
-                      {ded.status === "claimed" ? "Claimed" : ded.status === "in_progress" ? "In progress" : "Available"}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
       </section>
-
-      {/* ── Optimization Nudge ─────────────────────────────────────── */}
-      {dashboard.optimizationSignals[0] && (
-        <OptimizationNudgeCard
-          signal={dashboard.optimizationSignals[0]}
-          stateCode={user?.state ?? "CA"}
-          marginalTaxRate={user?.estimatedMarginalTaxRate ?? 0.24}
-        />
-      )}
     </div>
   );
 }

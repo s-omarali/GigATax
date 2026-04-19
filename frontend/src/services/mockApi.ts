@@ -18,11 +18,13 @@ import type {
   OnboardingPayload,
   ReceiptScanResponse,
 } from "../types/api";
-import type { FilingRun, IntegrationConnection, UserProfile } from "../types/domain";
+import type { DashboardMetrics, FilingRun, IntegrationConnection, Transaction, UserProfile } from "../types/domain";
+import { getStateTaxContext } from "../utils/stateTaxContext";
 import {
   estimateMilesFromGasSpend,
   getAllowedMileageDeduction,
   getAverageGasPriceForState,
+  getDemoMarginalRateFromAnnualIncome,
   getEstimatedTaxSavings,
 } from "../utils/taxMath";
 
@@ -32,14 +34,53 @@ function withLatency<T>(value: T, ms = 700): Promise<T> {
   });
 }
 
+function cloneProfile(profile: UserProfile): UserProfile {
+  return { ...profile, gigs: [...profile.gigs] };
+}
+
+function sumIncomeFromTransactions(transactions: Transaction[]): number {
+  return transactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+}
+
+/** Dashboard metrics scale from profile + static mock transactions (demo). */
+function buildDashboardMetrics(profile: UserProfile): DashboardMetrics {
+  const txnIncome = sumIncomeFromTransactions(mockTransactions);
+  const annual = Math.max(0, profile.estimatedAnnualIncome);
+  const blendedIncome = Math.round(Math.max(txnIncome, annual));
+
+  const ctx = getStateTaxContext(profile.state);
+  const incomeRatio = blendedIncome / Math.max(1, mockMetrics.totalIncome);
+
+  const estimatedTaxLiability = Math.round(
+    mockMetrics.estimatedTaxLiability * incomeRatio * ctx.liabilityMultiplier
+  );
+
+  const deductionTilt = 0.94 + 0.08 * Math.min(1.2, Math.max(0.8, ctx.liabilityMultiplier));
+  const totalDeductionsFound = Math.round(mockMetrics.totalDeductionsFound * deductionTilt);
+
+  return {
+    totalIncome: blendedIncome,
+    estimatedTaxLiability: Math.max(0, estimatedTaxLiability),
+    totalDeductionsFound: Math.max(0, totalDeductionsFound),
+  };
+}
+
+function initialProfile(): UserProfile {
+  const p = cloneProfile(mockUser);
+  p.estimatedMarginalTaxRate = getDemoMarginalRateFromAnnualIncome(p.estimatedAnnualIncome);
+  return p;
+}
+
+let currentMockProfile: UserProfile = initialProfile();
+
 export async function getCurrentUser(): Promise<UserProfile> {
-  return withLatency(mockUser, 450);
+  return withLatency(cloneProfile(currentMockProfile), 450);
 }
 
 export async function getDashboardData(): Promise<DashboardResponse> {
   return withLatency(
     {
-      metrics: mockMetrics,
+      metrics: buildDashboardMetrics(currentMockProfile),
       transactions: mockTransactions,
       deductions: mockDeductions,
       optimizationSignals: mockOptimizationSignals,
@@ -49,10 +90,26 @@ export async function getDashboardData(): Promise<DashboardResponse> {
 }
 
 export async function saveOnboarding(payload: OnboardingPayload): Promise<{ profile: UserProfile; integrations: IntegrationConnection[] }> {
+  const state = payload.state.trim().toUpperCase().slice(0, 2) || currentMockProfile.state;
+  const estimatedAnnualIncome = Math.max(0, Math.floor(payload.estimatedAnnualIncome));
+  const fullName = payload.fullName.trim() || currentMockProfile.fullName;
+  const email = payload.email.trim().toLowerCase() || currentMockProfile.email;
+
+  currentMockProfile = {
+    ...currentMockProfile,
+    fullName,
+    email,
+    gigs: [...payload.gigs],
+    state,
+    estimatedAnnualIncome,
+    estimatedMarginalTaxRate: getDemoMarginalRateFromAnnualIncome(estimatedAnnualIncome),
+    onboardingCompleted: true,
+  };
+
   return withLatency(
     {
-      profile: { ...mockUser, gigs: payload.gigs, onboardingCompleted: true },
-      integrations: payload.integrations,
+      profile: cloneProfile(currentMockProfile),
+      integrations: payload.integrations.map((i) => ({ ...i })),
     },
     900
   );

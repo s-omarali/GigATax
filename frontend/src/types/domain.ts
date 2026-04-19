@@ -32,7 +32,7 @@ export interface Deduction {
 }
 
 export interface IntegrationConnection {
-  id: "youtube" | "paypal" | "stripe" | "twitch" | "patreon";
+  id: "bank" | "stripe" | "twitch" | "youtube" | "paypal" | "patreon";
   name: string;
   description: string;
   connected: boolean;
@@ -44,7 +44,10 @@ export interface UserProfile {
   fullName: string;
   email: string;
   gigs: GigType[];
+  /** US state of residence, 2-letter code (e.g. CA). */
   state: string;
+  /** Whole dollars; used with linked transactions for dashboard income / liability demos. */
+  estimatedAnnualIncome: number;
   estimatedMarginalTaxRate: number;
   onboardingCompleted: boolean;
 }
@@ -55,12 +58,32 @@ export interface DashboardMetrics {
   totalDeductionsFound: number;
 }
 
-export interface OptimizationSignal {
+/** Vehicle mileage — uses live mileage API in OptimizationNudgeCard */
+export interface VehicleMileageOptimizationSignal {
   id: string;
   type: "vehicle_mileage";
+  /** When true, hidden from Optimization (demo only — no persistence). */
+  completed?: boolean;
+  label: string;
   gasSpend: number;
   detectedPeriodLabel: string;
 }
+
+/** Home office — simplified area × business-use estimate (demo). */
+export interface HomeOfficeOptimizationSignal {
+  id: string;
+  type: "home_office";
+  completed?: boolean;
+  label: string;
+  workspaceSqFt: number;
+  suggestedBusinessUsePercent: number;
+  /** Display hint aligned with mock Deduction.potentialSavings */
+  potentialSavingsHint: number;
+}
+
+export type OptimizationSignal =
+  | VehicleMileageOptimizationSignal
+  | HomeOfficeOptimizationSignal;
 
 export interface FilingProfile {
   legalName: string;

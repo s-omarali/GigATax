@@ -24,8 +24,8 @@ export function FinalReviewPage() {
     return () => { alive = false; };
   }, []);
 
-  if (isLoading) return <LoadingState title="Final Review" description="Preparing your filing summary..." />;
-  if (filed) return <SuccessState title="Filing submitted" description="Your filing package was sent. We'll notify you when status updates arrive." />;
+  if (isLoading) return <LoadingState title="Final review" description="Pulling your numbers together…" />;
+  if (filed) return <SuccessState title="You're good." description="We sent your filing package. We'll notify you when the status updates." />;
   if (!dashboard) return null;
 
   const totalExpenses = dashboard.transactions
@@ -35,17 +35,20 @@ export function FinalReviewPage() {
   return (
     <div className="space-y-6 animate-rise">
       <div>
-        <p className="text-[11px] font-semibold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(0,255,133,0.7)" }}>
-          Final Review & Filing
+        <p className="text-[11px] font-extrabold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(0,255,133,0.75)" }}>
+          Final pass
         </p>
-        <h1 className="text-[1.6rem] font-bold text-[#EDEDED] leading-tight">High-Trust Tax Summary</h1>
+        <h1 className="text-[1.6rem] font-extrabold text-[#EDEDED] leading-tight">Review before you file</h1>
+        <p className="text-[13px] mt-2" style={{ color: "#888888" }}>
+          Income, expenses, and deductions — in one place so you can sign off with confidence.
+        </p>
       </div>
 
       <section className="grid gap-6 sm:grid-cols-3">
         {[
-          { label: "Total Income", value: formatCurrency(dashboard.metrics.totalIncome), color: "#00FF85" },
-          { label: "Categorized Expenses", value: formatCurrency(totalExpenses), color: "#EDEDED" },
-          { label: "Estimated Taxes Due", value: formatCurrency(dashboard.metrics.estimatedTaxLiability), color: "#F59E0B" },
+          { label: "Total income", value: formatCurrency(dashboard.metrics.totalIncome), color: "#00FF85" },
+          { label: "Categorized expenses", value: formatCurrency(totalExpenses), color: "#EDEDED" },
+          { label: "What you owe (estimate)", value: formatCurrency(dashboard.metrics.estimatedTaxLiability), color: "#F59E0B" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bento-card" style={{ padding: "22px" }}>
             <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: "#888888" }}>{label}</p>
@@ -55,7 +58,7 @@ export function FinalReviewPage() {
       </section>
 
       <section className="bento-card" style={{ padding: "24px" }}>
-        <h2 className="text-[15px] font-semibold text-[#EDEDED] mb-4">Expense Breakdown</h2>
+        <h2 className="text-[15px] font-extrabold text-[#EDEDED] mb-4">Where the money went</h2>
         <div className="space-y-2">
           {dashboard.deductions.map((ded) => (
             <div
@@ -68,7 +71,7 @@ export function FinalReviewPage() {
             >
               <div>
                 <p className="text-[13px] font-medium text-[#EDEDED]">{ded.title}</p>
-                <p className="text-[11px]" style={{ color: "#555555" }}>{ded.detail}</p>
+                <p className="text-[11px]" style={{ color: "#666666" }}>{ded.detail}</p>
               </div>
               <p className="mn text-[14px] font-semibold" style={{ color: "#00FF85" }}>
                 +{formatCurrency(ded.potentialSavings)}
@@ -78,24 +81,23 @@ export function FinalReviewPage() {
         </div>
       </section>
 
-      {/* ── Primary CTA — full visual weight, same energy as "Enter GigATax" ── */}
       <div className="relative">
-        {/* glow halo behind button */}
         <div
           className="pointer-events-none absolute inset-0 rounded-2xl blur-2xl"
-          style={{ background: "rgba(0,255,133,0.18)", transform: "scale(1.04)" }}
+          style={{ background: "rgba(0,255,133,0.2)", transform: "scale(1.04)" }}
         />
         <button
+          type="button"
           onClick={() => setFiled(true)}
-          className="relative w-full flex items-center justify-center gap-3 rounded-2xl py-5 text-[16px] font-bold tracking-tight transition-all duration-150 active:scale-[0.99] hover:brightness-110"
+          className="giga-cta-shimmer relative w-full flex items-center justify-center gap-3 rounded-2xl py-5 text-[16px] font-extrabold tracking-tight transition-all duration-150 active:scale-[0.99] hover:brightness-110"
           style={{
             background: "#00FF85",
-            color: "#050505",
-            boxShadow: "0 0 48px rgba(0,255,133,0.3), 0 8px 24px rgba(0,0,0,0.5)",
+            color: "#0a0a0f",
+            boxShadow: "0 0 48px rgba(0,255,133,0.35), 0 8px 24px rgba(0,0,0,0.5)",
           }}
         >
           <ShieldCheck className="h-5 w-5" />
-          File My Taxes
+          I&apos;m done — file it
         </button>
       </div>
     </div>

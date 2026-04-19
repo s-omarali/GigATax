@@ -26,7 +26,7 @@ const ACCENT: Record<AccentColor, {
     valueCss:  "#00FF85",
     badgeBg:   "rgba(0,255,133,0.1)",
     badgeText: "#00FF85",
-    glow:      "0 0 0 1px rgba(0,255,133,0.25), 0 0 48px rgba(0,255,133,0.12)",
+    glow:      "0 0 0 1px rgba(0,255,133,0.35), 0 0 72px rgba(0,255,133,0.22), 0 24px 80px rgba(0,0,0,0.65)",
   },
   blue: {
     iconBg:    "rgba(59,130,246,0.1)",
@@ -67,8 +67,8 @@ export function MetricCard({
   if (hero) {
     return (
       <div
-        className="bento-card relative overflow-hidden"
-        style={{ boxShadow: a.glow, padding: "32px 28px" }}
+        className="bento-card bento-card--hero-surface relative isolate overflow-hidden w-full"
+        style={{ boxShadow: a.glow, padding: "40px 28px 44px", minHeight: "200px" }}
       >
         {/* Glow blob behind the number */}
         <div
@@ -76,23 +76,23 @@ export function MetricCard({
           aria-hidden="true"
         >
           <div
-            className="h-56 w-56 rounded-full blur-[80px] opacity-20"
+            className="h-72 w-[120%] max-w-none rounded-full blur-[100px] opacity-25"
             style={{ background: a.valueCss }}
           />
         </div>
 
         <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-5">
             {icon && (
               <div
-                className="flex h-9 w-9 items-center justify-center rounded-xl"
-                style={{ background: a.iconBg, color: a.iconColor }}
+                className="flex h-11 w-11 items-center justify-center rounded-xl"
+                style={{ background: a.iconBg, color: a.iconColor, boxShadow: "0 0 24px rgba(0,255,133,0.2)" }}
               >
                 {icon}
               </div>
             )}
             <p
-              className="text-[11px] font-semibold tracking-[0.1em] uppercase"
+              className="text-[12px] font-extrabold tracking-[0.12em] uppercase"
               style={{ color: a.iconColor }}
             >
               {label}
@@ -100,14 +100,14 @@ export function MetricCard({
           </div>
 
           <p
-            className="mn text-[3.25rem] font-bold leading-none tracking-tight"
-            style={{ color: a.valueCss }}
+            className="mn text-[clamp(2.75rem,6vw,4.25rem)] font-extrabold leading-none tracking-tight"
+            style={{ color: a.valueCss, textShadow: "0 0 42px rgba(0,255,133,0.18)" }}
           >
             {value}
           </p>
 
           {subtext && (
-            <p className="mt-3 text-[13px]" style={{ color: "#888888" }}>
+            <p className="mt-4 text-[14px] leading-snug" style={{ color: "#a3a3a3" }}>
               {subtext}
             </p>
           )}

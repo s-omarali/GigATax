@@ -7,7 +7,7 @@ interface LoadingStateProps {
 
 export function LoadingState({
   title = "Loading",
-  description = "AI is analyzing your transactions...",
+  description = "Crunching…",
 }: LoadingStateProps) {
   return (
     <div className="bento-card flex min-h-52 items-center justify-center p-8 text-center">
