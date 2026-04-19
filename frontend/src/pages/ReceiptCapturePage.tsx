@@ -2,7 +2,7 @@ import { Camera, FileText, Loader2, Sparkles, Upload, UploadCloud } from "lucide
 import { useCallback, useRef, useState } from "react";
 import { LoadingState } from "../components/state/LoadingState";
 import { SuccessState } from "../components/state/SuccessState";
-import { scanReceiptFile } from "../services/mockApi";
+import { scanReceiptFile } from "../services/api";
 import type { Transaction } from "../types/domain";
 
 type ActiveTab = "receipt" | "form1099";
@@ -34,6 +34,7 @@ export function ReceiptCapturePage() {
 
   // ── Receipt scan state ──────────────────────────────────────────
   const [fileName, setFileName] = useState("");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptDragging, setReceiptDragging] = useState(false);
   const receiptInputRef = useRef<HTMLInputElement>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -53,10 +54,10 @@ export function ReceiptCapturePage() {
   const dropRef = useRef<HTMLDivElement>(null);
 
   async function handleScan() {
-    if (!fileName) return;
+    if (!receiptFile) return;
     setSaved(false);
     setIsScanning(true);
-    const result = await scanReceiptFile(fileName);
+    const result = await scanReceiptFile(receiptFile);
     setScanResult(result);
     setCategory(result.suggestedCategory);
     setIsScanning(false);
@@ -97,12 +98,12 @@ export function ReceiptCapturePage() {
     e.preventDefault();
     setReceiptDragging(false);
     const f = e.dataTransfer.files[0];
-    if (f) setFileName(f.name);
+    if (f) { setFileName(f.name); setReceiptFile(f); }
   }
 
   function handleReceiptFilePick(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
-    if (f) setFileName(f.name);
+    if (f) { setFileName(f.name); setReceiptFile(f); }
   }
 
   const totalIncome = files1099
@@ -244,7 +245,7 @@ export function ReceiptCapturePage() {
               <button
                 type="button"
                 onClick={() => void handleScan()}
-                disabled={!fileName || isScanning}
+                disabled={!receiptFile || isScanning}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-3 text-[13px] font-extrabold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: "#3B82F6", color: "#ffffff" }}
               >

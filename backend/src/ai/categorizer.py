@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 from pathlib import Path
 
-import google.generativeai as genai
+import anthropic
 
 
 def _load_env() -> None:
@@ -21,8 +22,47 @@ def _load_env() -> None:
 
 
 _load_env()
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-_model = genai.GenerativeModel("gemini-1.5-flash")
+_client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+def extract_receipt(file_bytes: bytes, media_type: str) -> dict:
+    """Use Claude vision to extract merchant, amount, and date from a receipt image or PDF."""
+    b64 = base64.standard_b64encode(file_bytes).decode("utf-8")
+
+    if media_type == "application/pdf":
+        source = {"type": "base64", "media_type": "application/pdf", "data": b64}
+        content_block = {"type": "document", "source": source}
+    else:
+        source = {"type": "base64", "media_type": media_type, "data": b64}
+        content_block = {"type": "image", "source": source}
+
+    create_kwargs: dict = dict(
+        model="claude-sonnet-4-6",
+        max_tokens=256,
+        messages=[{
+            "role": "user",
+            "content": [
+                content_block,
+                {
+                    "type": "text",
+                    "text": (
+                        "Extract the merchant name, total amount, and date from this receipt. "
+                        "Return ONLY valid JSON with these fields: "
+                        "merchant (string), amount (number, no currency symbol), date (YYYY-MM-DD or empty string). "
+                        'Example: {"merchant": "Adobe Inc.", "amount": 54.99, "date": "2025-03-15"}'
+                    ),
+                },
+            ],
+        }],
+    )
+    response = _client.messages.create(**create_kwargs)
+    text = response.content[0].text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    data = json.loads(text)
+    return {
+        "merchant": str(data.get("merchant", "Unknown Merchant")),
+        "amount": float(data.get("amount", 0.0)),
+        "date": str(data.get("date", "")),
+    }
+
 
 VALID_CATEGORIES = [
     "Equipment", "Software", "Travel", "Meals", "HomeOffice",
@@ -75,9 +115,26 @@ Example for a needs review item:
 Example for income:
 {{"category": "Income", "confidence_score": 0.99, "type": "income", "deductible": false, "needs_review": false, "review_reason": null, "tax_impact": 1257.60, "reason": "YouTube platform payout — adds $1,257.60 to your estimated federal tax due at your 39.3% combined rate."}}"""
 
-    response = _model.generate_content(prompt)
-    text = response.text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    result = json.loads(text)
+    response = _client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=512,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = response.content[0].text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+
+    try:
+        result = json.loads(text)
+    except json.JSONDecodeError:
+        return {
+            "category": "Uncategorized",
+            "confidence_score": 0.5,
+            "type": "expense",
+            "deductible": False,
+            "needs_review": True,
+            "review_reason": "LOW_CONFIDENCE",
+            "tax_impact": 0.0,
+            "reason": "Could not categorize automatically — please review.",
+        }
 
     if result.get("category") not in VALID_CATEGORIES:
         result["category"] = "Uncategorized"
@@ -135,6 +192,10 @@ Example for a standing deduction:
 Example for a directly claimable deduction:
 [{{"title": "QBI Deduction (Section 199A)", "category": "Uncategorized", "potential_savings": 4084.00, "tax_savings": 4084.00, "detail": "As a self-employed gig worker you may qualify for a 20% deduction on qualified business income under Section 199A — this reduces your taxable income directly with no additional input required.", "review_required": false, "review_reason": null, "status": "AVAILABLE"}}]"""
 
-    response = _model.generate_content(prompt)
-    text = response.text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    response = _client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1024,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    text = response.content[0].text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     return json.loads(text)

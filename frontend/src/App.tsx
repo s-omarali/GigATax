@@ -1,5 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { RequireAuth } from "./components/auth/RequireAuth";
 import { AppShell } from "./components/layout/AppShell";
+import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { FilingPrepPage } from "./pages/FilingPrepPage";
 import { FinalReviewPage } from "./pages/FinalReviewPage";
@@ -11,13 +13,12 @@ import { ReceiptCapturePage } from "./pages/ReceiptCapturePage";
 function App() {
   return (
     <Routes>
-      {/* ── Marketing landing + full-screen onboarding — outside AppShell ── */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/start" element={<OnboardingPage />} />
       <Route path="/onboarding" element={<Navigate to="/start" replace />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
-      {/* ── Main app shell ── */}
-      <Route element={<AppShell />}>
+      <Route element={<RequireAuth><AppShell /></RequireAuth>}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/receipts" element={<ReceiptCapturePage />} />
         <Route path="/optimization" element={<OptimizationPage />} />

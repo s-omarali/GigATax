@@ -1,6 +1,6 @@
 import { Car, DollarSign, Fuel, Gauge, MapPinned } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { getOptimizationMileage } from "../../services/mockApi";
+import { getOptimizationMileage } from "../../services/api";
 import type { VehicleMileageOptimizationSignal } from "../../types/domain";
 import { formatCurrency, formatNumber, getEstimatedTaxSavings } from "../../utils/taxMath";
 import { LoadingState } from "../state/LoadingState";

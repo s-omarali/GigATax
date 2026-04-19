@@ -10,9 +10,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {
-  const { data } = await supabase.auth.getSession();
+  const { data, error } = await supabase.auth.refreshSession();
   const token = data.session?.access_token;
-  if (!token) return {};
+  if (!token || error) {
+    const { data: existing } = await supabase.auth.getSession();
+    const fallback = existing.session?.access_token;
+    if (!fallback) return {};
+    return { Authorization: `Bearer ${fallback}` };
+  }
   return { Authorization: `Bearer ${token}` };
 }
 
@@ -23,9 +28,17 @@ export const auth = {
   signIn: (email: string, password: string) =>
     supabase.auth.signInWithPassword({ email, password }),
 
+  signInWithGoogle: () =>
+    supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    }),
+
   signOut: () => supabase.auth.signOut(),
 
   getSession: () => supabase.auth.getSession(),
+
+  getUser: () => supabase.auth.getUser(),
 
   onAuthStateChange: (callback: Parameters<typeof supabase.auth.onAuthStateChange>[0]) =>
     supabase.auth.onAuthStateChange(callback),
