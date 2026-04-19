@@ -32,10 +32,7 @@ export function FilingPrepPage() {
       setIsLoading(false);
     }
     void load();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
   const currentStep = useMemo(() => {
@@ -62,50 +59,59 @@ export function FilingPrepPage() {
     setRun(updated);
   }
 
-  if (isLoading || !profile) {
-    return <LoadingState title="Filing Prep" description="Loading your filing profile fields..." />;
-  }
+  if (isLoading || !profile) return <LoadingState title="Filing Prep" description="Loading your filing profile fields..." />;
+
+  const inputStyle = "giga-input";
+  const labelStyle = "text-[12px] font-medium block mb-1.5";
 
   return (
-    <div className="space-y-4 animate-rise">
-      <header className="bento-card p-5">
-        <p className="text-xs uppercase tracking-wider text-neon-cyan">Prepare Numbers for Auto Filing</p>
-        <h1 className="text-3xl font-black text-white">Complete Missing Filing Information</h1>
-      </header>
+    <div className="space-y-6 animate-rise">
+      <div>
+        <p className="text-[11px] font-semibold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(59,130,246,0.8)" }}>
+          Prepare Numbers for Auto Filing
+        </p>
+        <h1 className="text-[1.6rem] font-bold text-[#EDEDED] leading-tight">
+          Complete Missing Filing Information
+        </h1>
+      </div>
 
-      <section className="bento-card grid gap-3 p-5 md:grid-cols-2">
-        <label className="space-y-1 text-sm text-slate-300">
-          Legal Name
+      <section className="bento-card grid gap-4 sm:grid-cols-2" style={{ padding: "24px" }}>
+        <label>
+          <span className={labelStyle} style={{ color: "#888888" }}>Legal Name</span>
           <input
             value={profile.legalName}
-            onChange={(event) => setProfile((prev) => (prev ? { ...prev, legalName: event.target.value } : prev))}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-neon-cyan"
+            onChange={(e) => setProfile((p) => p ? { ...p, legalName: e.target.value } : p)}
+            className={inputStyle}
           />
         </label>
-        <label className="space-y-1 text-sm text-slate-300">
-          SSN
+        <label>
+          <span className={labelStyle} style={{ color: "#888888" }}>Social Security Number</span>
           <input
             value={profile.ssn}
-            onChange={(event) => setProfile((prev) => (prev ? { ...prev, ssn: event.target.value } : prev))}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-neon-cyan"
+            onChange={(e) => setProfile((p) => p ? { ...p, ssn: e.target.value } : p)}
+            className={`${inputStyle} mn`}
           />
+          <p className="mt-1.5 flex items-center gap-1 text-[11px]" style={{ color: "#555555" }}>
+            <span style={{ color: "#00FF85" }}>🔒</span>
+            256-bit encrypted · We never store your full SSN
+          </p>
         </label>
-        <label className="space-y-1 text-sm text-slate-300">
-          Dependents
+        <label>
+          <span className={labelStyle} style={{ color: "#888888" }}>Dependents</span>
           <input
             type="number"
             min={0}
             value={profile.dependents}
-            onChange={(event) => setProfile((prev) => (prev ? { ...prev, dependents: Number(event.target.value) } : prev))}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-neon-cyan"
+            onChange={(e) => setProfile((p) => p ? { ...p, dependents: Number(e.target.value) } : p)}
+            className={`${inputStyle} mn`}
           />
         </label>
-        <label className="space-y-1 text-sm text-slate-300">
-          Filing Status
+        <label>
+          <span className={labelStyle} style={{ color: "#888888" }}>Filing Status</span>
           <select
             value={profile.filingStatus}
-            onChange={(event) => setProfile((prev) => (prev ? { ...prev, filingStatus: event.target.value as FilingProfile["filingStatus"] } : prev))}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-neon-cyan"
+            onChange={(e) => setProfile((p) => p ? { ...p, filingStatus: e.target.value as FilingProfile["filingStatus"] } : p)}
+            className={inputStyle}
           >
             <option value="single">Single</option>
             <option value="married_joint">Married filing jointly</option>
@@ -113,12 +119,12 @@ export function FilingPrepPage() {
             <option value="head_household">Head of household</option>
           </select>
         </label>
-        <label className="space-y-1 text-sm text-slate-300 md:col-span-2">
-          Address
+        <label className="sm:col-span-2">
+          <span className={labelStyle} style={{ color: "#888888" }}>Address</span>
           <input
             value={profile.address1}
-            onChange={(event) => setProfile((prev) => (prev ? { ...prev, address1: event.target.value } : prev))}
-            className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-neon-cyan"
+            onChange={(e) => setProfile((p) => p ? { ...p, address1: e.target.value } : p)}
+            className={inputStyle}
           />
         </label>
       </section>
@@ -127,7 +133,8 @@ export function FilingPrepPage() {
         <button
           onClick={() => void handleSave()}
           disabled={isSaving}
-          className="inline-flex items-center gap-2 rounded-lg bg-neon-cyan px-4 py-2 text-sm font-semibold text-ink-950 disabled:bg-slate-700 disabled:text-slate-400"
+          className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all duration-150 disabled:opacity-40"
+          style={{ background: "#3B82F6", color: "#ffffff" }}
         >
           <Save className="h-4 w-4" />
           {isSaving ? "Saving..." : "Save Filing Profile"}
@@ -135,8 +142,13 @@ export function FilingPrepPage() {
 
         <select
           value={provider}
-          onChange={(event) => setProvider(event.target.value as FilingRun["provider"])}
-          className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-neon-cyan"
+          onChange={(e) => setProvider(e.target.value as FilingRun["provider"])}
+          className="rounded-xl px-3 py-2.5 text-[13px] outline-none"
+          style={{
+            background: "rgba(255,255,255,0.04)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "#EDEDED",
+          }}
         >
           <option value="TurboTax">TurboTax</option>
           <option value="FreeTaxUSA">FreeTaxUSA</option>
@@ -144,41 +156,70 @@ export function FilingPrepPage() {
 
         <button
           onClick={() => void handleStartRun()}
-          className="inline-flex items-center gap-2 rounded-lg bg-neon-mint/20 px-4 py-2 text-sm font-semibold text-neon-mint"
+          className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all duration-150"
+          style={{
+            background: "rgba(0,255,133,0.1)",
+            border: "1px solid rgba(0,255,133,0.3)",
+            color: "#00FF85",
+          }}
         >
           <Play className="h-4 w-4" />
           Start Filing Session
         </button>
       </div>
 
-      {saved && <SuccessState title="Filing profile saved" description="Your inputs are stored and ready for filing orchestration." />}
+      {saved && <SuccessState title="Filing profile saved" description="Your details are saved. When you're ready, start your filing session below." />}
 
       {run && (
-        <section className="bento-card space-y-4 p-5">
+        <section className="bento-card space-y-5" style={{ padding: "24px" }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-wider text-neon-cyan">Orchestration Preview</p>
-              <h2 className="text-xl font-bold text-white">{provider} Guided Submission</h2>
+              <p className="text-[11px] font-semibold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(59,130,246,0.8)" }}>
+                What happens next
+              </p>
+              <h2 className="text-[16px] font-bold text-[#EDEDED]">Filing Steps — {provider}</h2>
             </div>
-            <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">{run.status}</span>
+            <span
+              className="chip"
+              style={{ background: "rgba(255,255,255,0.06)", color: "#888888" }}
+            >
+              {run.status === "awaiting_user"
+                ? "Waiting for you"
+                : run.status === "completed"
+                ? "Done"
+                : run.status === "running"
+                ? "In progress"
+                : "Ready"}
+            </span>
           </div>
 
           {currentStep && (
-            <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-              <p className="mb-2 text-sm font-semibold text-slate-100">Current Step: {currentStep.label}</p>
-              <div className="space-y-2 text-sm text-slate-300">
-                {currentStep.preview.map((item) => (
-                  <p key={item.field}>
-                    {item.field}: <span className="font-medium text-white">{item.value}</span>
-                  </p>
-                ))}
-              </div>
+            <div
+              className="rounded-xl px-4 py-4 space-y-2"
+              style={{
+                background: "rgba(255,255,255,0.025)",
+                border: "1px solid rgba(255,255,255,0.07)",
+              }}
+            >
+              <p className="text-[13px] font-semibold text-[#EDEDED] mb-3">
+                Up next: {currentStep.label}
+              </p>
+              {currentStep.preview.map((item) => (
+                <div key={item.field} className="flex justify-between text-[13px]">
+                  <span style={{ color: "#888888" }}>{item.field}</span>
+                  <span className="font-medium text-[#EDEDED]">{item.value}</span>
+                </div>
+              ))}
             </div>
           )}
 
           {run.status !== "completed" ? (
-            <button onClick={() => void handleApproveNext()} className="rounded-lg bg-neon-cyan px-4 py-2 text-sm font-semibold text-ink-950">
-              Accept and Next
+            <button
+              onClick={() => void handleApproveNext()}
+              className="rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all duration-150"
+              style={{ background: "#3B82F6", color: "#ffffff" }}
+            >
+              Accept and Next →
             </button>
           ) : (
             <SuccessState title="Automation complete" description="All filing steps were approved and completed successfully." />

@@ -1,4 +1,4 @@
-import { Car, DollarSign, Gauge, MapPinned } from "lucide-react";
+import { Car, DollarSign, Fuel, Gauge, MapPinned } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getOptimizationMileage } from "../../services/mockApi";
 import type { OptimizationSignal } from "../../types/domain";
@@ -17,7 +17,11 @@ interface MileageResult {
   allowedDeductionAmount: number;
 }
 
-export function OptimizationNudgeCard({ signal, stateCode, marginalTaxRate }: OptimizationNudgeCardProps) {
+export function OptimizationNudgeCard({
+  signal,
+  stateCode,
+  marginalTaxRate,
+}: OptimizationNudgeCardProps) {
   const [selectedState, setSelectedState] = useState(stateCode || "CA");
   const [mpg, setMpg] = useState(24);
   const [businessMiles, setBusinessMiles] = useState(450);
@@ -46,10 +50,7 @@ export function OptimizationNudgeCard({ signal, stateCode, marginalTaxRate }: Op
     }
 
     void recalculate();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [businessMiles, mpg, selectedState, signal.gasSpend]);
 
   useEffect(() => {
@@ -59,88 +60,192 @@ export function OptimizationNudgeCard({ signal, stateCode, marginalTaxRate }: Op
     }
   }, [businessMiles, result]);
 
-  const maxBusinessMiles = useMemo(() => Math.max(1, Math.floor(result?.estimatedMiles ?? 1000)), [result?.estimatedMiles]);
+  const maxBusinessMiles = useMemo(
+    () => Math.max(1, Math.floor(result?.estimatedMiles ?? 1000)),
+    [result?.estimatedMiles]
+  );
+
   const taxSavings = useMemo(() => {
     if (!result) return 0;
     return getEstimatedTaxSavings(result.allowedDeductionAmount, marginalTaxRate);
   }, [marginalTaxRate, result]);
+
+  const sliderPct = maxBusinessMiles > 0 ? (Math.min(businessMiles, maxBusinessMiles) / maxBusinessMiles) * 100 : 0;
 
   if (isLoading && !result) {
     return <LoadingState title="Optimization Nudge" description="Crunching your mileage deduction estimate..." />;
   }
 
   return (
-    <section className="bento-card p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-neon-cyan">Tax Savings Optimization</p>
-          <h2 className="text-2xl font-bold text-white">Vehicle Mileage Deduction</h2>
+    <section className="bento-card" style={{ padding: "24px" }}>
+
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-xl"
+            style={{ background: "rgba(59,130,246,0.1)", color: "#3B82F6" }}
+          >
+            <Car className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold tracking-[0.1em] uppercase" style={{ color: "rgba(59,130,246,0.8)" }}>
+              Deduction opportunity
+            </p>
+            <h2 className="text-[16px] font-bold text-[#EDEDED] leading-tight">
+              Vehicle Mileage Write-Off
+            </h2>
+          </div>
         </div>
-        <span className="rounded-full bg-neon-mint/15 px-2 py-1 text-xs font-semibold text-neon-mint">{signal.detectedPeriodLabel}</span>
+        <span
+          className="chip"
+          style={{ background: "rgba(0,255,133,0.1)", color: "#00FF85" }}
+        >
+          {signal.detectedPeriodLabel}
+        </span>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-          <span className="mb-2 flex items-center gap-2 text-sm text-slate-300"><MapPinned className="h-4 w-4" />State</span>
+      {/* Gas spend observation */}
+      <div
+        className="flex items-start gap-3 rounded-xl px-4 py-3.5 mb-6"
+        style={{
+          background: "rgba(245,158,11,0.05)",
+          border: "1px solid rgba(245,158,11,0.2)",
+        }}
+      >
+        <Fuel className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "#F59E0B" }} />
+        <p className="text-[12px] leading-relaxed" style={{ color: "#EDEDED" }}>
+          We detected{" "}
+          <span className="mn font-semibold" style={{ color: "#F59E0B" }}>
+            {formatCurrency(signal.gasSpend)}
+          </span>{" "}
+          in gas spend. Using{" "}
+          <span className="font-medium">{selectedState.toUpperCase()}</span> avg of{" "}
+          <span className="mn font-semibold">{formatCurrency(result?.averageGasPrice ?? 0)}/gal</span>{" "}
+          at {mpg} MPG → approximately{" "}
+          <span className="mn font-semibold text-[#EDEDED]">
+            {formatNumber(result?.estimatedMiles ?? 0)} total miles
+          </span>.
+        </p>
+      </div>
+
+      {/* Config row */}
+      <div className="grid gap-4 sm:grid-cols-2 mb-6">
+        <label className="space-y-1.5">
+          <span className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: "#888888" }}>
+            <MapPinned className="h-3.5 w-3.5" /> State
+          </span>
           <input
             value={selectedState}
-            onChange={(event) => setSelectedState(event.target.value.toUpperCase())}
+            onChange={(e) => setSelectedState(e.target.value.toUpperCase())}
             maxLength={2}
-            className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-2 uppercase text-white outline-none focus:border-neon-cyan"
+            placeholder="CA"
+            className="giga-input uppercase"
           />
         </label>
-
-        <label className="rounded-xl border border-slate-800 bg-slate-900/60 p-3">
-          <span className="mb-2 flex items-center gap-2 text-sm text-slate-300"><Gauge className="h-4 w-4" />Vehicle MPG</span>
+        <label className="space-y-1.5">
+          <span className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: "#888888" }}>
+            <Gauge className="h-3.5 w-3.5" /> Vehicle MPG
+          </span>
           <input
             type="number"
             min={5}
             max={70}
             value={mpg}
-            onChange={(event) => setMpg(Number(event.target.value) || 0)}
-            className="w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-white outline-none focus:border-neon-cyan"
+            onChange={(e) => setMpg(Number(e.target.value) || 0)}
+            className="giga-input"
           />
         </label>
       </div>
 
-      <div className="mt-4 rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-sm text-slate-200">
-        <p className="mb-2 flex items-center gap-2"><Car className="h-4 w-4 text-neon-amber" />We detected {formatCurrency(signal.gasSpend)} in gas spend.</p>
-        <p>
-          Using {selectedState.toUpperCase()} 2025 regular gas average of {formatCurrency(result?.averageGasPrice ?? 0)}/gal and {mpg} MPG,
-          that is approximately <strong>{formatNumber(result?.estimatedMiles ?? 0)} total miles</strong>.
-        </p>
-      </div>
-
-      <div className="mt-5">
-        <label className="text-sm font-medium text-slate-200">How many of these miles were for business?</label>
-        <div className="mt-2 flex items-center gap-3">
-          <input
-            type="range"
-            min={0}
-            max={maxBusinessMiles}
-            value={Math.min(businessMiles, maxBusinessMiles)}
-            onChange={(event) => setBusinessMiles(Number(event.target.value))}
-            className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-slate-700"
-          />
+      {/* ── THE NUDGE SLIDER ── */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <label className="text-[13px] font-medium text-[#EDEDED]">
+            Business miles driven
+          </label>
           <input
             type="number"
             min={0}
             max={maxBusinessMiles}
             value={businessMiles}
-            onChange={(event) => setBusinessMiles(Number(event.target.value) || 0)}
-            className="w-28 rounded-md border border-slate-700 bg-slate-950 px-2 py-2 text-sm text-white outline-none focus:border-neon-cyan"
+            onChange={(e) => setBusinessMiles(Number(e.target.value) || 0)}
+            className="mn w-24 rounded-xl px-3 py-1.5 text-[13px] text-right text-[#EDEDED] outline-none"
+            style={{
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.1)",
+            }}
           />
+        </div>
+
+        {/* Custom styled range track */}
+        <div className="relative">
+          <input
+            type="range"
+            min={0}
+            max={maxBusinessMiles}
+            value={Math.min(businessMiles, maxBusinessMiles)}
+            onChange={(e) => setBusinessMiles(Number(e.target.value))}
+            className="w-full"
+            style={{
+              background: `linear-gradient(
+                to right,
+                #00FF85 0%,
+                #00FF85 ${sliderPct}%,
+                rgba(255,255,255,0.1) ${sliderPct}%,
+                rgba(255,255,255,0.1) 100%
+              )`,
+            }}
+          />
+        </div>
+        <div className="flex justify-between mt-1.5">
+          <span className="text-[11px]" style={{ color: "#555555" }}>0 mi</span>
+          <span className="mn text-[11px]" style={{ color: "#555555" }}>
+            {formatNumber(maxBusinessMiles)} mi max
+          </span>
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
-          <p className="text-xs uppercase tracking-wide text-slate-400">Mileage Deduction</p>
-          <p className="text-2xl font-extrabold text-white">{formatCurrency(result?.allowedDeductionAmount ?? 0)}</p>
+      {/* ── Live result tiles ── */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* Mileage deduction */}
+        <div
+          className="rounded-xl px-4 py-4"
+          style={{
+            background: "rgba(59,130,246,0.06)",
+            border: "1px solid rgba(59,130,246,0.2)",
+          }}
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: "rgba(59,130,246,0.7)" }}>
+            Mileage Deduction
+          </p>
+          <p className="mn text-[1.6rem] font-bold text-[#EDEDED] leading-none animate-ticker">
+            {formatCurrency(result?.allowedDeductionAmount ?? 0)}
+          </p>
+          <p className="text-[11px] mt-1.5" style={{ color: "#555555" }}>
+            At $0.67/mile IRS rate (2025)
+          </p>
         </div>
-        <div className="rounded-xl border border-neon-mint/30 bg-neon-mint/10 p-4 shadow-glow">
-          <p className="flex items-center gap-2 text-xs uppercase tracking-wide text-neon-mint"><DollarSign className="h-3.5 w-3.5" />Tax Savings Claimed</p>
-          <p className="text-2xl font-extrabold text-neon-mint">{formatCurrency(taxSavings)}</p>
+
+        {/* Tax savings — hero green */}
+        <div
+          className="rounded-xl px-4 py-4"
+          style={{
+            background: "rgba(0,255,133,0.06)",
+            border: "1px solid rgba(0,255,133,0.25)",
+            boxShadow: "0 0 28px rgba(0,255,133,0.07)",
+          }}
+        >
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: "rgba(0,255,133,0.7)" }}>
+            <DollarSign className="h-3 w-3" />
+            Tax Savings
+          </p>
+          <p className="mn text-[1.6rem] font-bold leading-none animate-ticker" style={{ color: "#00FF85" }}>
+            {formatCurrency(taxSavings)}
+          </p>
+          <p className="text-[11px] mt-1.5" style={{ color: "#555555" }}>
+            At your {(marginalTaxRate * 100).toFixed(0)}% tax rate
+          </p>
         </div>
       </div>
     </section>

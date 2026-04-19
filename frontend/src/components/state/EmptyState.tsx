@@ -7,11 +7,11 @@ interface EmptyStateProps {
 
 export function EmptyState({ title, description }: EmptyStateProps) {
   return (
-    <div className="bento-card flex min-h-40 items-center justify-center p-6 text-center">
+    <div className="bento-card flex min-h-52 items-center justify-center p-8 text-center">
       <div className="space-y-3">
-        <Inbox className="mx-auto h-6 w-6 text-slate-500" />
-        <h3 className="text-lg font-semibold text-slate-100">{title}</h3>
-        <p className="text-sm text-slate-400">{description}</p>
+        <Inbox className="mx-auto h-6 w-6" style={{ color: "#555555" }} />
+        <h3 className="text-[15px] font-semibold text-[#EDEDED]">{title}</h3>
+        <p className="text-[13px]" style={{ color: "#888888" }}>{description}</p>
       </div>
     </div>
   );

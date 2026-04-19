@@ -10,16 +10,20 @@ import { ReceiptCapturePage } from "./pages/ReceiptCapturePage";
 function App() {
   return (
     <Routes>
+      {/* ── Full-screen onboarding gate — outside AppShell ── */}
+      <Route path="/" element={<OnboardingPage />} />
+      <Route path="/onboarding" element={<Navigate to="/" replace />} />
+
+      {/* ── Main app shell ── */}
       <Route element={<AppShell />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/receipts" element={<ReceiptCapturePage />} />
         <Route path="/optimization" element={<OptimizationPage />} />
         <Route path="/review" element={<FinalReviewPage />} />
         <Route path="/filing-prep" element={<FilingPrepPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

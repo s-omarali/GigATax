@@ -1,4 +1,10 @@
-import { CircleDollarSign, Receipt, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  CircleDollarSign,
+  Receipt,
+  ShieldCheck,
+  TrendingUp,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ActionRequiredCard } from "../components/dashboard/ActionRequiredCard";
 import { CategorizationFeed } from "../components/dashboard/CategorizationFeed";
@@ -7,7 +13,7 @@ import { OptimizationNudgeCard } from "../components/optimization/OptimizationNu
 import { EmptyState } from "../components/state/EmptyState";
 import { LoadingState } from "../components/state/LoadingState";
 import { getCurrentUser, getDashboardData } from "../services/mockApi";
-import type { DashboardResponse, } from "../types/api";
+import type { DashboardResponse } from "../types/api";
 import type { UserProfile } from "../types/domain";
 import { formatCurrency } from "../utils/taxMath";
 
@@ -29,9 +35,7 @@ export function DashboardPage() {
     }
 
     void load();
-    return () => {
-      alive = false;
-    };
+    return () => { alive = false; };
   }, []);
 
   const pendingDeductions = useMemo(
@@ -47,49 +51,183 @@ export function DashboardPage() {
     return <EmptyState title="No transactions yet" description="Connect your bank or upload receipts to populate your dashboard." />;
   }
 
-  return (
-    <div className="space-y-4 animate-rise">
-      <header className="bento-card p-5">
-        <p className="text-xs uppercase tracking-widest text-neon-cyan">Main Workspace</p>
-        <h1 className="text-3xl font-black text-white">Welcome back, {user?.fullName.split(" ")[0] ?? "Creator"}</h1>
-        <p className="mt-2 text-slate-300">Your tax posture is improving. Keep pushing to lock in deductions before filing.</p>
-      </header>
+  const firstName = user?.fullName.split(" ")[0] ?? "Creator";
 
-      <section className="grid gap-4 md:grid-cols-3">
+  return (
+    <div className="space-y-6 animate-rise">
+
+      {/* ── PINNED HERO DIRECTIVE — dominant above everything ─────── */}
+      {pendingDeductions > 0 && (
+        <div
+          className="relative overflow-hidden rounded-2xl px-6 py-5"
+          style={{
+            background: "linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(59,130,246,0.04) 100%)",
+            border: "1px solid rgba(59,130,246,0.28)",
+            boxShadow: "0 0 40px rgba(59,130,246,0.08)",
+          }}
+        >
+          {/* Subtle glow blob */}
+          <div
+            className="pointer-events-none absolute -top-12 -right-12 h-40 w-40 rounded-full blur-3xl"
+            style={{ background: "rgba(59,130,246,0.12)" }}
+          />
+          <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div
+                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
+                style={{ background: "rgba(59,130,246,0.15)" }}
+              >
+                <ShieldCheck className="h-5 w-5" style={{ color: "#3B82F6" }} />
+              </div>
+              <div>
+                <p className="text-[15px] font-bold text-[#EDEDED] leading-snug">
+                  You have {pendingDeductions} deduction{pendingDeductions !== 1 ? "s" : ""} to review
+                </p>
+                <p className="text-[13px] mt-0.5" style={{ color: "#888888" }}>
+                  GigATax identified potential savings — confirm them before filing to lock in your refund.
+                </p>
+              </div>
+            </div>
+            <a
+              href="/optimization"
+              className="flex flex-shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-bold transition-all duration-150 active:scale-[0.98]"
+              style={{
+                background: "#3B82F6",
+                color: "#ffffff",
+                boxShadow: "0 0 20px rgba(59,130,246,0.25)",
+              }}
+            >
+              Review Now <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* ── Page header ────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-semibold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(0,255,133,0.7)" }}>
+            Command Center
+          </p>
+          <h1 className="text-[1.6rem] font-bold text-[#EDEDED] leading-tight">
+            Hey, {firstName}
+          </h1>
+          <p className="text-[13px] mt-0.5" style={{ color: "#888888" }}>
+            Tax Year 2026 · California · {user?.estimatedMarginalTaxRate ? `${(user.estimatedMarginalTaxRate * 100).toFixed(0)}% tax bracket` : ""}
+          </p>
+        </div>
+        {/* Quick CTA */}
+        <a
+          href="/filing-prep"
+          className="hidden md:flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px] font-semibold transition-all duration-150"
+          style={{
+            background: "rgba(59,130,246,0.12)",
+            border: "1px solid rgba(59,130,246,0.3)",
+            color: "#3B82F6",
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(59,130,246,0.2)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = "rgba(59,130,246,0.12)"; }}
+        >
+          <TrendingUp className="h-4 w-4" />
+          Review & File
+        </a>
+      </div>
+
+      {/* ── HERO — Total Tax Savings ────────────────────────────────── */}
+      {/* This is the #1 DOM priority. Largest, most visually striking element. */}
+      <MetricCard
+        label="Total Tax Savings Identified"
+        value={formatCurrency(dashboard.metrics.totalDeductionsFound)}
+        subtext={`${dashboard.deductions.filter((d) => d.status === "claimed").length} deductions claimed · ${pendingDeductions} pending your review`}
+        icon={<TrendingUp className="h-5 w-5" />}
+        accent="green"
+        hero
+      />
+
+      {/* ── Metric row ─────────────────────────────────────────────── */}
+      <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
         <MetricCard
-          label="Total Income"
+          label="Total 1099 Income"
           value={formatCurrency(dashboard.metrics.totalIncome)}
-          subtext="Across linked 1099 and payout platforms"
+          subtext="Across linked payout platforms"
           icon={<CircleDollarSign className="h-4 w-4" />}
-          accent="cyan"
+          accent="blue"
         />
         <MetricCard
           label="Estimated Tax Liability"
           value={formatCurrency(dashboard.metrics.estimatedTaxLiability)}
-          subtext="Projected with current deductions"
+          subtext="With current deductions applied"
           icon={<ShieldCheck className="h-4 w-4" />}
           accent="amber"
         />
-        <MetricCard
-          label="Deductions Found"
-          value={formatCurrency(dashboard.metrics.totalDeductionsFound)}
-          subtext="Potentially claimable this year"
-          icon={<Receipt className="h-4 w-4" />}
-          accent="mint"
-        />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+      {/* ── Bento grid: AI Feed + right-rail ───────────────────────── */}
+      <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        {/* AI Activity Feed — left, dominant */}
         <CategorizationFeed transactions={dashboard.transactions} />
-        <div className="space-y-4">
+
+        {/* Right rail */}
+        <div className="space-y-6">
           <ActionRequiredCard pendingCount={pendingDeductions} />
-          <OptimizationNudgeCard
-            signal={dashboard.optimizationSignals[0]}
-            stateCode={user?.state ?? "CA"}
-            marginalTaxRate={user?.estimatedMarginalTaxRate ?? 0.24}
-          />
+
+          {/* Deductions claimed summary */}
+          <div className="bento-card" style={{ padding: "20px" }}>
+            <div className="flex items-center gap-2 mb-4">
+              <div
+                className="flex h-7 w-7 items-center justify-center rounded-lg"
+                style={{ background: "rgba(0,255,133,0.1)", color: "#00FF85" }}
+              >
+                <Receipt className="h-4 w-4" />
+              </div>
+              <h2 className="text-[13px] font-semibold text-[#EDEDED]">Deduction Status</h2>
+            </div>
+            <div className="space-y-2">
+              {dashboard.deductions.map((ded) => (
+                <div
+                  key={ded.id}
+                  className="flex items-center justify-between rounded-xl px-3 py-2.5"
+                  style={{
+                    background: "rgba(255,255,255,0.025)",
+                    border: "1px solid rgba(255,255,255,0.05)",
+                  }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-medium text-[#EDEDED] truncate">{ded.title}</p>
+                    <p className="text-[11px] text-[#555555]">{ded.detail}</p>
+                  </div>
+                  <div className="flex flex-col items-end flex-shrink-0 ml-3">
+                    <p className="mn text-[13px] font-semibold" style={{ color: "#00FF85" }}>
+                      +{formatCurrency(ded.potentialSavings)}
+                    </p>
+                    <span
+                      className="chip mt-0.5"
+                      style={
+                        ded.status === "claimed"
+                          ? { background: "rgba(0,255,133,0.1)", color: "#00FF85" }
+                          : ded.status === "in_progress"
+                          ? { background: "rgba(59,130,246,0.1)", color: "#3B82F6" }
+                          : { background: "rgba(255,255,255,0.06)", color: "#888888" }
+                      }
+                    >
+                      {ded.status === "claimed" ? "Claimed" : ded.status === "in_progress" ? "In progress" : "Available"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
+
+      {/* ── Optimization Nudge ─────────────────────────────────────── */}
+      {dashboard.optimizationSignals[0] && (
+        <OptimizationNudgeCard
+          signal={dashboard.optimizationSignals[0]}
+          stateCode={user?.state ?? "CA"}
+          marginalTaxRate={user?.estimatedMarginalTaxRate ?? 0.24}
+        />
+      )}
     </div>
   );
 }
