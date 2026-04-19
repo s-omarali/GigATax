@@ -184,7 +184,7 @@ export function DashboardPage() {
         <MetricCard
           label="Estimated annual income"
           value={formatCurrency(dashboard.metrics.totalIncome)}
-          subtext={`Higher of linked payouts (${formatCurrency(linkedIncomeTotal)}) and your estimate (${formatCurrency(user?.estimatedAnnualIncome ?? 0)})`}
+          subtext={`Based on linked payout activity (${formatCurrency(linkedIncomeTotal)}) and gig-based annual run-rate modeling`}
           icon={<CircleDollarSign className="h-4 w-4" />}
           accent="blue"
         />

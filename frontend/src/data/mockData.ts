@@ -55,7 +55,7 @@ export const mockUser: UserProfile = {
   email: "alex@gigatax.app",
   gigs: ["Content Creator", "Video Editor"],
   state: "TX",
-  estimatedAnnualIncome: 52_000,
+  estimatedAnnualIncome: 198_000,
   estimatedMarginalTaxRate: 0.24,
   onboardingCompleted: true,
 };
@@ -72,8 +72,8 @@ export const mockIntegrations: IntegrationConnection[] = [
 
 const MOCK_GIG_TRANSACTIONS: Record<GigType, Transaction[]> = {
   "Content Creator": [
-    { id: "cc-1", date: "2026-04-17", merchant: "YouTube", amount: 3200, type: "income", category: "Income", confidenceScore: 0.99, source: "bank" },
-    { id: "cc-2", date: "2026-04-15", merchant: "Patreon", amount: 950, type: "income", category: "Income", confidenceScore: 0.96, source: "bank" },
+    { id: "cc-1", date: "2026-04-17", merchant: "YouTube", amount: 8600, type: "income", category: "Income", confidenceScore: 0.99, source: "bank" },
+    { id: "cc-2", date: "2026-04-15", merchant: "Patreon", amount: 3400, type: "income", category: "Income", confidenceScore: 0.96, source: "bank" },
     { id: "cc-3", date: "2026-04-14", merchant: "Adobe", amount: 59.99, type: "expense", category: "Software", confidenceScore: 0.97, source: "bank" },
     { id: "cc-4", date: "2026-04-12", merchant: "Best Buy", amount: 179.99, type: "expense", category: "Supplies", confidenceScore: 0.84, source: "receipt" },
     { id: "cc-5", date: "2026-04-11", merchant: "Shell", amount: 138.5, type: "expense", category: "Vehicle", confidenceScore: 0.9, source: "bank" },
@@ -82,7 +82,7 @@ const MOCK_GIG_TRANSACTIONS: Record<GigType, Transaction[]> = {
     { id: "cc-8", date: "2026-04-06", merchant: "Nobu", amount: 86.4, type: "expense", category: "Meals", confidenceScore: 0.9, source: "bank", notes: "Potential client dinner - review needed" },
   ],
   "Video Editor": [
-    { id: "ve-1", date: "2026-04-16", merchant: "Upwork", amount: 2250, type: "income", category: "Income", confidenceScore: 0.97, source: "bank" },
+    { id: "ve-1", date: "2026-04-16", merchant: "Upwork", amount: 9400, type: "income", category: "Income", confidenceScore: 0.97, source: "bank" },
     { id: "ve-2", date: "2026-04-13", merchant: "Frame.io", amount: 15.0, type: "expense", category: "Software", confidenceScore: 0.95, source: "bank" },
     { id: "ve-3", date: "2026-04-12", merchant: "DaVinci Resolve", amount: 29.0, type: "expense", category: "Software", confidenceScore: 0.94, source: "bank" },
     { id: "ve-4", date: "2026-04-10", merchant: "B&H", amount: 84.6, type: "expense", category: "Supplies", confidenceScore: 0.88, source: "receipt" },
@@ -92,8 +92,8 @@ const MOCK_GIG_TRANSACTIONS: Record<GigType, Transaction[]> = {
     { id: "ve-8", date: "2026-04-04", merchant: "Perry's Steakhouse", amount: 74.8, type: "expense", category: "Meals", confidenceScore: 0.88, source: "bank", notes: "Potential client dinner - review needed" },
   ],
   "Streamer": [
-    { id: "st-1", date: "2026-04-17", merchant: "Twitch", amount: 1480, type: "income", category: "Income", confidenceScore: 0.98, source: "bank" },
-    { id: "st-2", date: "2026-04-15", merchant: "PayPal Tips", amount: 410, type: "income", category: "Income", confidenceScore: 0.95, source: "bank" },
+    { id: "st-1", date: "2026-04-17", merchant: "Twitch", amount: 6200, type: "income", category: "Income", confidenceScore: 0.98, source: "bank" },
+    { id: "st-2", date: "2026-04-15", merchant: "PayPal Tips", amount: 2300, type: "income", category: "Income", confidenceScore: 0.95, source: "bank" },
     { id: "st-3", date: "2026-04-14", merchant: "Elgato", amount: 149.0, type: "expense", category: "Supplies", confidenceScore: 0.91, source: "receipt" },
     { id: "st-4", date: "2026-04-12", merchant: "Canva", amount: 15.0, type: "expense", category: "Software", confidenceScore: 0.93, source: "email" },
     { id: "st-5", date: "2026-04-11", merchant: "Uber", amount: 28.6, type: "expense", category: "Travel", confidenceScore: 0.86, source: "bank" },
@@ -102,8 +102,8 @@ const MOCK_GIG_TRANSACTIONS: Record<GigType, Transaction[]> = {
     { id: "st-8", date: "2026-04-07", merchant: "Wingstop", amount: 52.1, type: "expense", category: "Meals", confidenceScore: 0.86, source: "bank", notes: "Potential collab meeting meal - review needed" },
   ],
   "Photographer": [
-    { id: "ph-1", date: "2026-04-16", merchant: "HoneyBook", amount: 2100, type: "income", category: "Income", confidenceScore: 0.98, source: "bank" },
-    { id: "ph-2", date: "2026-04-13", merchant: "Pixieset", amount: 680, type: "income", category: "Income", confidenceScore: 0.94, source: "bank" },
+    { id: "ph-1", date: "2026-04-16", merchant: "HoneyBook", amount: 7800, type: "income", category: "Income", confidenceScore: 0.98, source: "bank" },
+    { id: "ph-2", date: "2026-04-13", merchant: "Pixieset", amount: 3600, type: "income", category: "Income", confidenceScore: 0.94, source: "bank" },
     { id: "ph-3", date: "2026-04-12", merchant: "LensRentals", amount: 175.0, type: "expense", category: "Supplies", confidenceScore: 0.92, source: "receipt" },
     { id: "ph-4", date: "2026-04-11", merchant: "Chevron", amount: 118.7, type: "expense", category: "Vehicle", confidenceScore: 0.9, source: "bank" },
     { id: "ph-5", date: "2026-04-09", merchant: "Hilton", amount: 264.0, type: "expense", category: "Travel", confidenceScore: 0.87, source: "email" },
@@ -112,8 +112,8 @@ const MOCK_GIG_TRANSACTIONS: Record<GigType, Transaction[]> = {
     { id: "ph-8", date: "2026-04-05", merchant: "Truluck's", amount: 91.35, type: "expense", category: "Meals", confidenceScore: 0.87, source: "bank", notes: "Potential client dinner - review needed" },
   ],
   "Podcaster": [
-    { id: "po-1", date: "2026-04-17", merchant: "Spotify", amount: 930, type: "income", category: "Income", confidenceScore: 0.95, source: "bank" },
-    { id: "po-2", date: "2026-04-15", merchant: "Patreon", amount: 340, type: "income", category: "Income", confidenceScore: 0.94, source: "bank" },
+    { id: "po-1", date: "2026-04-17", merchant: "Spotify", amount: 4200, type: "income", category: "Income", confidenceScore: 0.95, source: "bank" },
+    { id: "po-2", date: "2026-04-15", merchant: "Patreon", amount: 2100, type: "income", category: "Income", confidenceScore: 0.94, source: "bank" },
     { id: "po-3", date: "2026-04-13", merchant: "Riverside", amount: 24.0, type: "expense", category: "Software", confidenceScore: 0.92, source: "bank" },
     { id: "po-4", date: "2026-04-12", merchant: "Shure", amount: 199.0, type: "expense", category: "Supplies", confidenceScore: 0.9, source: "receipt" },
     { id: "po-5", date: "2026-04-10", merchant: "Uber", amount: 32.4, type: "expense", category: "Travel", confidenceScore: 0.85, source: "bank" },
@@ -122,8 +122,8 @@ const MOCK_GIG_TRANSACTIONS: Record<GigType, Transaction[]> = {
     { id: "po-8", date: "2026-04-06", merchant: "P.F. Chang's", amount: 63.55, type: "expense", category: "Meals", confidenceScore: 0.88, source: "bank", notes: "Potential guest meal - review needed" },
   ],
   "Freelance Writer": [
-    { id: "fw-1", date: "2026-04-16", merchant: "Substack", amount: 880, type: "income", category: "Income", confidenceScore: 0.96, source: "bank" },
-    { id: "fw-2", date: "2026-04-13", merchant: "Wise", amount: 1240, type: "income", category: "Income", confidenceScore: 0.95, source: "bank" },
+    { id: "fw-1", date: "2026-04-16", merchant: "Substack", amount: 5200, type: "income", category: "Income", confidenceScore: 0.96, source: "bank" },
+    { id: "fw-2", date: "2026-04-13", merchant: "Wise", amount: 4700, type: "income", category: "Income", confidenceScore: 0.95, source: "bank" },
     { id: "fw-3", date: "2026-04-12", merchant: "Grammarly", amount: 12.0, type: "expense", category: "Software", confidenceScore: 0.94, source: "bank" },
     { id: "fw-4", date: "2026-04-10", merchant: "Amazon Books", amount: 54.2, type: "expense", category: "Supplies", confidenceScore: 0.88, source: "email" },
     { id: "fw-5", date: "2026-04-09", merchant: "Blue Bottle", amount: 23.6, type: "expense", category: "Meals", confidenceScore: 0.84, source: "bank" },
@@ -148,6 +148,13 @@ export function getMockTransactionsForGigs(gigs: GigType[]): Transaction[] {
   }
 
   return merged.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function estimateAnnualIncomeFromGigs(gigs: GigType[]): number {
+  const monthlyIncome = getMockTransactionsForGigs(gigs)
+    .filter((tx) => tx.type === "income")
+    .reduce((sum, tx) => sum + tx.amount, 0);
+  return Math.round(monthlyIncome * 12);
 }
 
 export function getMockTransactionsByCategory(transactions: Transaction[]): Record<TransactionCategory, Transaction[]> {
@@ -251,9 +258,9 @@ export function getMockOptimizationSignals(transactions: Transaction[]): Optimiz
 }
 
 export const mockMetrics: DashboardMetrics = {
-  totalIncome: 4150,
-  estimatedTaxLiability: 1087,
-  totalDeductionsFound: 670,
+  totalIncome: 165000,
+  estimatedTaxLiability: 36500,
+  totalDeductionsFound: 8400,
 };
 
 export const mockFilingProfile: FilingProfile = {

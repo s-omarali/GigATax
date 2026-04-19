@@ -1,5 +1,6 @@
 import {
   avgGasPriceByState2025,
+  estimateAnnualIncomeFromGigs,
   getMockOptimizationSignals,
   getMockTransactionsForGigs,
   mockDeductions,
@@ -165,7 +166,10 @@ export async function getDashboardData(): Promise<DashboardResponse> {
 
 export async function saveOnboarding(payload: OnboardingPayload): Promise<{ profile: UserProfile; integrations: IntegrationConnection[] }> {
   const state = payload.state.trim().toUpperCase().slice(0, 2) || currentMockProfile.state;
-  const estimatedAnnualIncome = Math.max(0, Math.floor(payload.estimatedAnnualIncome));
+  const estimatedAnnualIncome = Math.max(
+    0,
+    Math.floor(payload.estimatedAnnualIncome || estimateAnnualIncomeFromGigs(payload.gigs))
+  );
   const fullName = payload.fullName.trim() || currentMockProfile.fullName;
   const email = payload.email.trim().toLowerCase() || currentMockProfile.email;
 
