@@ -10,15 +10,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function getAuthHeaders(): Promise<Record<string, string>> {
-  const { data, error } = await supabase.auth.refreshSession();
-  const token = data.session?.access_token;
-  if (!token || error) {
-    const { data: existing } = await supabase.auth.getSession();
-    const fallback = existing.session?.access_token;
-    if (!fallback) return {};
-    return { Authorization: `Bearer ${fallback}` };
+  try {
+    const { data, error } = await supabase.auth.refreshSession();
+    const token = data.session?.access_token;
+    if (!token || error) {
+      const { data: existing } = await supabase.auth.getSession();
+      const fallback = existing.session?.access_token;
+      if (!fallback) return {};
+      return { Authorization: `Bearer ${fallback}` };
+    }
+    return { Authorization: `Bearer ${token}` };
+  } catch {
+    // If auth SDK network calls fail, allow caller to proceed unauthenticated.
+    // Backend will return a 401 with actionable detail instead of a generic fetch error.
+    return {};
   }
-  return { Authorization: `Bearer ${token}` };
 }
 
 export const auth = {

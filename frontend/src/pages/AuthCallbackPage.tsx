@@ -8,21 +8,39 @@ export function AuthCallbackPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Supabase auto-exchanges the code from the URL on page load.
-    // Listen for the resulting SIGNED_IN event instead of calling exchangeCodeForSession manually.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        subscription.unsubscribe();
-        try {
-          const user = await getCurrentUser();
-          navigate(user.onboardingCompleted ? "/dashboard" : "/start?from=google");
-        } catch {
-          navigate("/start?from=google");
-        }
+    let active = true;
+
+    async function routeAfterAuth() {
+      if (!active) return;
+      try {
+        const user = await getCurrentUser();
+        navigate(user.onboardingCompleted ? "/dashboard" : "/start?from=google");
+      } catch {
+        navigate("/start?from=google");
+      }
+    }
+
+    // Handle case where session is already available by the time this page mounts.
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      if (data.session) {
+        void routeAfterAuth();
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Also listen for SIGNED_IN in case session exchange completes after mount.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+      if (event === "SIGNED_IN" && session) {
+        subscription.unsubscribe();
+        void routeAfterAuth();
+      }
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   return <LoadingState title="Signing you in" description="Just a moment…" />;
