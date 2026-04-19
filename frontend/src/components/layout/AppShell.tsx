@@ -4,23 +4,58 @@ import {
   FileCheck2,
   FileSpreadsheet,
   ReceiptText,
-  Zap,
 } from "lucide-react";
+import { GigaTaxWordmark } from "../branding/GigaTaxWordmark";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
+import { useOptimizationReview } from "../../context/OptimizationReviewContext";
+import { getCurrentUser, getDashboardData } from "../../services/mockApi";
+import type { UserProfile } from "../../types/domain";
+import {
+  countIncompleteOptimizationSignals,
+  mergeOptimizationCompletion,
+} from "../../utils/optimizationSignals";
 
 const navItems = [
-  { to: "/dashboard",    label: "Dashboard",       icon: BarChart3 },
-  { to: "/receipts",     label: "Receipt Capture", icon: ReceiptText },
-  { to: "/optimization", label: "Optimization",    icon: ClipboardList },
-  { to: "/review",       label: "Final Review",    icon: FileCheck2 },
-  { to: "/filing-prep",  label: "Filing Prep",     icon: FileSpreadsheet },
+  { to: "/dashboard",    label: "Dashboard",       icon: BarChart3,    activeEmoji: "📊" },
+  { to: "/receipts",     label: "Receipt Capture", icon: ReceiptText,  activeEmoji: "🧾" },
+  { to: "/optimization", label: "Optimization",    icon: ClipboardList, activeEmoji: "⚡" },
+  { to: "/review",       label: "Final Review",    icon: FileCheck2,   activeEmoji: "✅" },
+  { to: "/filing-prep",  label: "Filing Prep",     icon: FileSpreadsheet, activeEmoji: "📄" },
 ];
 
 export function AppShell() {
+  const { completedIds } = useOptimizationReview();
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [dashForBadge, setDashForBadge] = useState<Awaited<ReturnType<typeof getDashboardData>> | null>(null);
+
+  const optimizationBadgeCount = useMemo(() => {
+    if (!dashForBadge) return 0;
+    const merged = mergeOptimizationCompletion(dashForBadge.optimizationSignals, completedIds);
+    return countIncompleteOptimizationSignals(merged);
+  }, [dashForBadge, completedIds]);
+
+  useEffect(() => {
+    let alive = true;
+    async function load() {
+      const [profile, dash] = await Promise.all([getCurrentUser(), getDashboardData()]);
+      if (!alive) return;
+      setUser(profile);
+      setDashForBadge(dash);
+    }
+    void load();
+    return () => { alive = false; };
+  }, []);
+
+  const firstName = useMemo(() => {
+    if (!user?.fullName) return null;
+    return user.fullName.split(" ")[0];
+  }, [user?.fullName]);
+
   return (
     <div
       className="min-h-screen"
-      style={{ background: "#050505" }}
+      style={{ background: "#0a0a0f" }}
     >
       {/* Ambient radial blobs — placed behind everything */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
@@ -42,34 +77,31 @@ export function AppShell() {
             style={{ padding: 0 }}
           >
             {/* Brand */}
-            <div className="flex items-center gap-3 px-5 py-5 border-b border-white/[0.06]">
-              <div
-                className="flex h-8 w-8 items-center justify-center rounded-lg flex-shrink-0"
-                style={{
-                  background: "#00FF85",
-                  boxShadow: "0 0 16px rgba(0,255,133,0.4)",
-                }}
-              >
-                <Zap className="h-4 w-4" style={{ color: "#050505" }} fill="currentColor" />
-              </div>
-              <div>
-                <p className="text-[11px] font-semibold tracking-[0.12em] uppercase" style={{ color: "rgba(0,255,133,0.7)" }}>
-                  GigATax
-                </p>
+            <div className="px-5 py-5 border-b border-white/[0.06]">
+              <div className="min-w-0">
+                <GigaTaxWordmark size="xl" className="block" />
                 <p className="text-[13px] font-semibold text-[#EDEDED] leading-tight">
-                  Creator Tax OS
+                  Your tax workspace
                 </p>
               </div>
             </div>
 
-            {/* Nav */}
+            {/* Nav — Optimization row shows a red badge when incomplete optimization reviews remain (clears as you confirm each on the Optimization tab; session-only — full reload resets for demo). */}
             <nav className="px-3 py-3 space-y-0.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
+                const showOptBadge = item.to === "/optimization" && optimizationBadgeCount > 0;
+                const badgeLabel =
+                  optimizationBadgeCount > 9 ? "9+" : String(optimizationBadgeCount);
                 return (
                   <NavLink
                     key={item.to}
                     to={item.to}
+                    aria-label={
+                      showOptBadge
+                        ? `Optimization, ${optimizationBadgeCount} item${optimizationBadgeCount !== 1 ? "s" : ""} need review`
+                        : undefined
+                    }
                     className={({ isActive }) =>
                       `flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-150 ${
                         isActive
@@ -86,8 +118,39 @@ export function AppShell() {
                         : { border: "1px solid transparent" }
                     }
                   >
-                    <Icon className="h-4 w-4 flex-shrink-0" />
-                    {item.label}
+                    {({ isActive }) => (
+                      <>
+                        <Icon className="h-4 w-4 flex-shrink-0" />
+                        <span className="relative flex-1 min-w-0 pr-3">
+                          <span className="block truncate">
+                            {isActive ? `${item.activeEmoji} ${item.label}` : item.label}
+                          </span>
+                          {showOptBadge && (
+                            optimizationBadgeCount === 1 ? (
+                              <span
+                                className="absolute right-0 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full"
+                                style={{
+                                  background: "#EF4444",
+                                  boxShadow: "0 0 0 2px #0a0a0f",
+                                }}
+                                aria-hidden
+                              />
+                            ) : (
+                              <span
+                                className="absolute right-0 top-1/2 flex h-[18px] min-w-[18px] -translate-y-1/2 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white"
+                                style={{
+                                  background: "#EF4444",
+                                  boxShadow: "0 0 0 2px #0a0a0f",
+                                }}
+                                aria-hidden
+                              >
+                                {badgeLabel}
+                              </span>
+                            )
+                          )}
+                        </span>
+                      </>
+                    )}
                   </NavLink>
                 );
               })}
@@ -97,7 +160,11 @@ export function AppShell() {
             <div className="px-5 py-4 border-t border-white/[0.05]">
               <p className="text-[11px] text-[#555555] leading-relaxed">
                 Tax year <span className="text-[#888888] font-medium">2026</span>
-                {" "}· Alex Rivera
+                {firstName ? (
+                  <>
+                    {" "}· <span className="text-[#888888]">{firstName}</span>
+                  </>
+                ) : null}
               </p>
             </div>
           </div>

@@ -22,13 +22,13 @@ import type {
   PlaidSyncResponse,
   ReceiptScanResponse,
 } from "../types/api";
-import type { FilingRun, IntegrationConnection, UserProfile } from "../types/domain";
-import { API_ROUTES } from "../types/api";
-import { supabase } from "../lib/supabaseClient";
+import type { DashboardMetrics, FilingRun, IntegrationConnection, Transaction, UserProfile } from "../types/domain";
+import { getStateTaxContext } from "../utils/stateTaxContext";
 import {
   estimateMilesFromGasSpend,
   getAllowedMileageDeduction,
   getAverageGasPriceForState,
+  getDemoMarginalRateFromAnnualIncome,
   getEstimatedTaxSavings,
 } from "../utils/taxMath";
 
@@ -90,30 +90,47 @@ function withLatency<T>(value: T, ms = 700): Promise<T> {
   });
 }
 
-export async function getCurrentUser(): Promise<UserProfile> {
-  try {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`${API_BASE}${API_ROUTES.me}`, { headers });
-    if (response.ok) {
-      const user = await response.json();
-      return {
-        id: user.id,
-        fullName: user.full_name,
-        email: user.email,
-        gigs: user.gigs ?? [],
-        state: user.state,
-        estimatedMarginalTaxRate: Number(user.estimated_marginal_tax_rate ?? 0.24),
-        onboardingCompleted: Boolean(user.onboarding_completed),
-      } as UserProfile;
-    }
-    throw new Error(`GET ${API_ROUTES.me} failed with status ${response.status}`);
-  } catch {
-    if (!ALLOW_MOCK_FALLBACK) {
-      throw new Error("Unable to load current user from backend. Set VITE_ALLOW_MOCK_FALLBACK=true to allow local mock fallback.");
-    }
-  }
+function cloneProfile(profile: UserProfile): UserProfile {
+  return { ...profile, gigs: [...profile.gigs] };
+}
 
-  return withLatency(mockUser, 450);
+function sumIncomeFromTransactions(transactions: Transaction[]): number {
+  return transactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0);
+}
+
+/** Dashboard metrics scale from profile + static mock transactions (demo). */
+function buildDashboardMetrics(profile: UserProfile): DashboardMetrics {
+  const txnIncome = sumIncomeFromTransactions(mockTransactions);
+  const annual = Math.max(0, profile.estimatedAnnualIncome);
+  const blendedIncome = Math.round(Math.max(txnIncome, annual));
+
+  const ctx = getStateTaxContext(profile.state);
+  const incomeRatio = blendedIncome / Math.max(1, mockMetrics.totalIncome);
+
+  const estimatedTaxLiability = Math.round(
+    mockMetrics.estimatedTaxLiability * incomeRatio * ctx.liabilityMultiplier
+  );
+
+  const deductionTilt = 0.94 + 0.08 * Math.min(1.2, Math.max(0.8, ctx.liabilityMultiplier));
+  const totalDeductionsFound = Math.round(mockMetrics.totalDeductionsFound * deductionTilt);
+
+  return {
+    totalIncome: blendedIncome,
+    estimatedTaxLiability: Math.max(0, estimatedTaxLiability),
+    totalDeductionsFound: Math.max(0, totalDeductionsFound),
+  };
+}
+
+function initialProfile(): UserProfile {
+  const p = cloneProfile(mockUser);
+  p.estimatedMarginalTaxRate = getDemoMarginalRateFromAnnualIncome(p.estimatedAnnualIncome);
+  return p;
+}
+
+let currentMockProfile: UserProfile = initialProfile();
+
+export async function getCurrentUser(): Promise<UserProfile> {
+  return withLatency(cloneProfile(currentMockProfile), 450);
 }
 
 export async function getDashboardData(): Promise<DashboardResponse> {
@@ -133,7 +150,7 @@ export async function getDashboardData(): Promise<DashboardResponse> {
 
   return withLatency(
     {
-      metrics: mockMetrics,
+      metrics: buildDashboardMetrics(currentMockProfile),
       transactions: mockTransactions,
       deductions: mockDeductions,
       optimizationSignals: mockOptimizationSignals,
@@ -143,42 +160,26 @@ export async function getDashboardData(): Promise<DashboardResponse> {
 }
 
 export async function saveOnboarding(payload: OnboardingPayload): Promise<{ profile: UserProfile; integrations: IntegrationConnection[] }> {
-  try {
-    const headers = await getAuthHeaders({ "Content-Type": "application/json" });
-    const response = await fetch(`${API_BASE}${API_ROUTES.onboarding}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        profile: {
-          id: data.profile.id,
-          fullName: data.profile.full_name,
-          email: data.profile.email,
-          gigs: data.profile.gigs ?? [],
-          state: data.profile.state,
-          estimatedMarginalTaxRate: Number(data.profile.estimated_marginal_tax_rate ?? 0.24),
-          onboardingCompleted: Boolean(data.profile.onboarding_completed),
-        },
-        integrations: (data.integrations ?? []).map((i: any) => ({
-          id: i.integration_id,
-          name: i.name,
-          description: i.name,
-          connected: Boolean(i.connected),
-          lastSyncAt: i.last_sync_at ?? undefined,
-        })),
-      };
-    }
-  } catch {
-    // Fall back to mock behavior.
-  }
+  const state = payload.state.trim().toUpperCase().slice(0, 2) || currentMockProfile.state;
+  const estimatedAnnualIncome = Math.max(0, Math.floor(payload.estimatedAnnualIncome));
+  const fullName = payload.fullName.trim() || currentMockProfile.fullName;
+  const email = payload.email.trim().toLowerCase() || currentMockProfile.email;
+
+  currentMockProfile = {
+    ...currentMockProfile,
+    fullName,
+    email,
+    gigs: [...payload.gigs],
+    state,
+    estimatedAnnualIncome,
+    estimatedMarginalTaxRate: getDemoMarginalRateFromAnnualIncome(estimatedAnnualIncome),
+    onboardingCompleted: true,
+  };
 
   return withLatency(
     {
-      profile: { ...mockUser, gigs: payload.gigs, onboardingCompleted: true },
-      integrations: payload.integrations,
+      profile: cloneProfile(currentMockProfile),
+      integrations: payload.integrations.map((i) => ({ ...i })),
     },
     900
   );

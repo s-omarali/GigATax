@@ -59,7 +59,7 @@ export function FilingPrepPage() {
     setRun(updated);
   }
 
-  if (isLoading || !profile) return <LoadingState title="Filing Prep" description="Loading your filing profile fields..." />;
+  if (isLoading || !profile) return <LoadingState title="Filing prep" description="Crunching…" />;
 
   const inputStyle = "giga-input";
   const labelStyle = "text-[12px] font-medium block mb-1.5";
@@ -67,17 +67,20 @@ export function FilingPrepPage() {
   return (
     <div className="space-y-6 animate-rise">
       <div>
-        <p className="text-[11px] font-semibold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(59,130,246,0.8)" }}>
-          Prepare Numbers for Auto Filing
+        <p className="text-[11px] font-extrabold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(59,130,246,0.85)" }}>
+          Last few things before you&apos;re done
         </p>
-        <h1 className="text-[1.6rem] font-bold text-[#EDEDED] leading-tight">
-          Complete Missing Filing Information
+        <h1 className="text-[1.65rem] font-extrabold text-[#EDEDED] leading-tight">
+          Filing information
         </h1>
+        <p className="text-[13px] mt-2" style={{ color: "#888888" }}>
+          Encrypted in transit and at rest. We treat tax data like financial data — because it is.
+        </p>
       </div>
 
       <section className="bento-card grid gap-4 sm:grid-cols-2" style={{ padding: "24px" }}>
         <label>
-          <span className={labelStyle} style={{ color: "#888888" }}>Legal Name</span>
+          <span className={labelStyle} style={{ color: "#888888" }}>Legal name</span>
           <input
             value={profile.legalName}
             onChange={(e) => setProfile((p) => p ? { ...p, legalName: e.target.value } : p)}
@@ -92,8 +95,7 @@ export function FilingPrepPage() {
             className={`${inputStyle} mn`}
           />
           <p className="mt-1.5 flex items-center gap-1 text-[11px]" style={{ color: "#555555" }}>
-            <span style={{ color: "#00FF85" }}>🔒</span>
-            256-bit encrypted · We never store your full SSN
+            🔒 256-bit encrypted · We never store your full SSN
           </p>
         </label>
         <label>
@@ -107,7 +109,7 @@ export function FilingPrepPage() {
           />
         </label>
         <label>
-          <span className={labelStyle} style={{ color: "#888888" }}>Filing Status</span>
+          <span className={labelStyle} style={{ color: "#888888" }}>Filing status</span>
           <select
             value={profile.filingStatus}
             onChange={(e) => setProfile((p) => p ? { ...p, filingStatus: e.target.value as FilingProfile["filingStatus"] } : p)}
@@ -137,7 +139,7 @@ export function FilingPrepPage() {
           style={{ background: "#3B82F6", color: "#ffffff" }}
         >
           <Save className="h-4 w-4" />
-          {isSaving ? "Saving..." : "Save Filing Profile"}
+          {isSaving ? "Saving…" : "Save"}
         </button>
 
         <select
@@ -153,42 +155,54 @@ export function FilingPrepPage() {
           <option value="TurboTax">TurboTax</option>
           <option value="FreeTaxUSA">FreeTaxUSA</option>
         </select>
+      </div>
 
+      <div className="relative">
+        <div
+          className="pointer-events-none absolute inset-0 rounded-2xl blur-2xl"
+          style={{ background: "rgba(0,255,133,0.2)", transform: "scale(1.02)" }}
+        />
         <button
+          type="button"
           onClick={() => void handleStartRun()}
-          className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all duration-150"
+          className="relative w-full flex items-center justify-center gap-3 rounded-2xl py-5 text-[16px] font-extrabold tracking-tight transition-all duration-150 active:scale-[0.99] hover:brightness-110"
           style={{
-            background: "rgba(0,255,133,0.1)",
-            border: "1px solid rgba(0,255,133,0.3)",
-            color: "#00FF85",
+            background: "#00FF85",
+            color: "#0a0a0f",
+            boxShadow: "0 0 48px rgba(0,255,133,0.35), 0 10px 28px rgba(0,0,0,0.55)",
           }}
         >
-          <Play className="h-4 w-4" />
-          Start Filing Session
+          <Play className="h-5 w-5" />
+          File Taxes — start session
         </button>
       </div>
 
-      {saved && <SuccessState title="Filing profile saved" description="Your details are saved. When you're ready, start your filing session below." />}
+      {saved && (
+        <SuccessState
+          title="Nice. Saved."
+          description="When you're ready, start the filing session below — we'll walk each step with you."
+        />
+      )}
 
       {run && (
         <section className="bento-card space-y-5" style={{ padding: "24px" }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] font-semibold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(59,130,246,0.8)" }}>
+              <p className="text-[11px] font-extrabold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(59,130,246,0.85)" }}>
                 What happens next
               </p>
-              <h2 className="text-[16px] font-bold text-[#EDEDED]">Filing Steps — {provider}</h2>
+              <h2 className="text-[16px] font-extrabold text-[#EDEDED]">Filing steps — {provider}</h2>
             </div>
             <span
               className="chip"
               style={{ background: "rgba(255,255,255,0.06)", color: "#888888" }}
             >
               {run.status === "awaiting_user"
-                ? "Waiting for you"
+                ? "Waiting on you"
                 : run.status === "completed"
                 ? "Done"
                 : run.status === "running"
-                ? "In progress"
+                ? "Running"
                 : "Ready"}
             </span>
           </div>
@@ -214,15 +228,26 @@ export function FilingPrepPage() {
           )}
 
           {run.status !== "completed" ? (
-            <button
-              onClick={() => void handleApproveNext()}
-              className="rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all duration-150"
-              style={{ background: "#3B82F6", color: "#ffffff" }}
-            >
-              Accept and Next →
-            </button>
+            <div className="relative">
+              <div
+                className="pointer-events-none absolute inset-0 rounded-2xl blur-2xl"
+                style={{ background: "rgba(59,130,246,0.18)", transform: "scale(1.02)" }}
+              />
+              <button
+                type="button"
+                onClick={() => void handleApproveNext()}
+                className="relative w-full rounded-2xl py-4 text-[15px] font-extrabold transition-all duration-150 active:scale-[0.99]"
+                style={{
+                  background: "#3B82F6",
+                  color: "#ffffff",
+                  boxShadow: "0 0 40px rgba(59,130,246,0.35), 0 10px 26px rgba(0,0,0,0.45)",
+                }}
+              >
+                Lock it in ✓ — next step
+              </button>
+            </div>
           ) : (
-            <SuccessState title="Automation complete" description="All filing steps were approved and completed successfully." />
+            <SuccessState title="All set." description="All filing steps are approved. We'll notify you if anything changes." />
           )}
         </section>
       )}

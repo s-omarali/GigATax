@@ -51,8 +51,9 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans:  ["'Inter'", "'Segoe UI'", "system-ui", "sans-serif"],
-        mono:  ["'JetBrains Mono'", "'Fira Code'", "ui-monospace", "monospace"],
+        sans:    ["'Inter'", "'Segoe UI'", "system-ui", "sans-serif"],
+        mono:    ["'JetBrains Mono'", "'Fira Code'", "ui-monospace", "monospace"],
+        display: ["'Syne'", "'Inter'", "system-ui", "sans-serif"],
       },
       fontSize: {
         "2xs": ["0.65rem", { lineHeight: "1rem" }],

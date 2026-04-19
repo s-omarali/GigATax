@@ -2,12 +2,16 @@ import {
   ArrowRight,
   BarChart3,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   FileText,
   Link2,
   Loader2,
+  Mail,
   Music,
   Pencil,
   Radio,
+  ShieldCheck,
   Sparkles,
   Trash2,
   UploadCloud,
@@ -18,6 +22,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { useNavigate } from "react-router-dom";
+import { GigaTaxWordmark } from "../components/branding/GigaTaxWordmark";
 import { gigOptions } from "../data/mockData";
 import {
   createPlaidLinkToken,
@@ -38,12 +43,91 @@ const GIG_ICONS: Record<string, React.ReactNode> = {
   "Freelance Writer": <Pencil className="h-4 w-4" />,
 };
 
-// ── 3 user-action steps; step 4 is confirmation only (not counted) ────────
+const TOTAL_ONBOARDING_STEPS = 7;
+
+// ── Seven steps: sign-in → profile → gigs → income → connect → 1099s → done ─────
 const STEPS = [
-  { number: 1, label: "Your Work" },
-  { number: 2, label: "Connect" },
-  { number: 3, label: "1099s" },
+  { number: 1, label: "Sign in" },
+  { number: 2, label: "Profile" },
+  { number: 3, label: "Your Work" },
+  { number: 4, label: "Income" },
+  { number: 5, label: "Connect" },
+  { number: 6, label: "1099s" },
+  { number: 7, label: "You're in" },
 ];
+
+function parseIncomeDollars(raw: string): number | null {
+  const cleaned = raw.replace(/[$,\s]/g, "").trim();
+  if (cleaned === "") return null;
+  const n = Number(cleaned);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.floor(n);
+}
+
+function isValidEmailFormat(value: string): boolean {
+  const t = value.trim();
+  if (!t.includes("@")) return false;
+  const [local, domain] = t.split("@");
+  return Boolean(local && domain && domain.includes("."));
+}
+
+/** Payout / platform integrations only — exclude bank from “already covered” messaging. */
+const PAYOUT_SUBHEADING_EXCLUDE_IDS: IntegrationConnection["id"][] = ["bank"];
+
+/** Oxford comma: "A", "A and B", "A, B, and C" */
+function formatOxfordCommaList(names: string[]): string {
+  const n = names.filter(Boolean);
+  if (n.length === 0) return "";
+  if (n.length === 1) return n[0];
+  if (n.length === 2) return `${n[0]} and ${n[1]}`;
+  return `${n.slice(0, -1).join(", ")}, and ${n[n.length - 1]}`;
+}
+
+type Integration1099Subheading =
+  | { kind: "payouts"; line1: string; line2: string }
+  | { kind: "bankOnly"; text: string }
+  | { kind: "none"; text: string };
+
+function get1099StepIntegrationSubheading(integrations: IntegrationConnection[]): Integration1099Subheading {
+  const connected = integrations.filter((i) => i.connected);
+  const payoutNames = connected
+    .filter((i) => !PAYOUT_SUBHEADING_EXCLUDE_IDS.includes(i.id))
+    .map((i) => i.name);
+
+  if (payoutNames.length > 0) {
+    const list = formatOxfordCommaList(payoutNames);
+    return {
+      kind: "payouts",
+      line1: `You're connected to: ${list}.`,
+      line2:
+        "Upload tax forms for income that isn't already covered by those connections — especially 1099-Ks from other platforms, or 1099-NEC / 1099-MISC from other payers.",
+    };
+  }
+
+  if (connected.length === 0) {
+    return {
+      kind: "none",
+      text:
+        "Connect payout platforms on the previous step to import more automatically, or upload any 1099s you have here — 1099-K, 1099-NEC, and 1099-MISC.",
+    };
+  }
+
+  const onlyBankConnected = connected.every((i) => i.id === "bank");
+
+  if (onlyBankConnected) {
+    return {
+      kind: "bankOnly",
+      text:
+        "Your bank is linked for cash-flow visibility — we don't pull platform 1099-K data from that alone. Upload forms from payers and payout apps you haven't connected yet, or go back and link more sources.",
+    };
+  }
+
+  return {
+    kind: "none",
+    text:
+      "Upload 1099s from payers we don't pull automatically — especially 1099-Ks where platforms pay you outside your linked sources, or 1099-NEC / 1099-MISC from clients.",
+  };
+}
 
 // ── 1099 file record ──────────────────────────────────────────────────────
 interface Form1099 {
@@ -77,22 +161,50 @@ export function OnboardingPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
 
-  // Step 1
+  // Step 1 — sign in (demo: no real OAuth)
+  const [signInEmail, setSignInEmail] = useState("");
+  const [signInPassword, setSignInPassword] = useState("");
+  const [signInError, setSignInError] = useState("");
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Step 2 — confirm name & email for tax profile
+  const [profileFullName, setProfileFullName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [profileNameError, setProfileNameError] = useState("");
+  const [profileEmailError, setProfileEmailError] = useState("");
+
+  // Step 3 — gigs
   const [jobSearch, setJobSearch] = useState("");
   const [selectedGigs, setSelectedGigs] = useState<UserProfile["gigs"]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Step 2
-  const [integrations, setIntegrations] = useState<IntegrationConnection[]>([]);
-  const [plaidLinkToken, setPlaidLinkToken] = useState<string | null>(null);
-  const [isPlaidConnecting, setIsPlaidConnecting] = useState(false);
+  // Step 4 — income + state
+  const [annualIncomeInput, setAnnualIncomeInput] = useState("");
+  const [residenceState, setResidenceState] = useState("TX");
+  const [incomeFieldError, setIncomeFieldError] = useState("");
 
-  // Step 3 — 1099 uploads
+  useEffect(() => {
+    if (step === 4) setResidenceState("TX");
+  }, [step]);
+
+  // Step 5 — connect
+  const [integrations, setIntegrations] = useState<IntegrationConnection[]>([]);
+  const [integrationsExpanded, setIntegrationsExpanded] = useState(false);
+  const INTEGRATIONS_PREVIEW = 3;
+  /** Bumps when user links an integration — drives short falling-money burst (CSS). */
+  const [connectMoneyBurst, setConnectMoneyBurst] = useState<
+    Partial<Record<IntegrationConnection["id"], number>>
+  >({});
+  /** Latest integrations for click handlers — avoids Strict Mode double-updater clearing `willLink`. */
+  const integrationsRef = useRef<IntegrationConnection[]>(integrations);
+  integrationsRef.current = integrations;
+
+  // Step 6 — 1099 uploads
   const [forms, setForms] = useState<Form1099[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Step 4
+  // Step 7 — confirmation
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -112,6 +224,11 @@ export function OnboardingPage() {
     [jobSearch]
   );
 
+  const integration1099Subheading = useMemo(
+    () => get1099StepIntegrationSubheading(integrations),
+    [integrations]
+  );
+
   function toggleGig(gig: UserProfile["gigs"][number]) {
     setSelectedGigs((prev) =>
       prev.includes(gig) ? prev.filter((g) => g !== gig) : [...prev, gig]
@@ -119,9 +236,22 @@ export function OnboardingPage() {
   }
 
   function toggleIntegration(id: IntegrationConnection["id"]) {
+    const row = integrationsRef.current.find((i) => i.id === id);
+    const willLink = Boolean(row && !row.connected);
     setIntegrations((prev) =>
       prev.map((i) => (i.id === id ? { ...i, connected: !i.connected } : i))
     );
+    if (willLink) {
+      const token = Date.now();
+      setConnectMoneyBurst((m) => ({ ...m, [id]: token }));
+      window.setTimeout(() => {
+        setConnectMoneyBurst((m) => {
+          if (m[id] !== token) return m;
+          const { [id]: _, ...rest } = m;
+          return rest;
+        });
+      }, 780);
+    }
   }
 
   const onPlaidSuccess = useCallback(async (publicToken: string) => {
@@ -211,11 +341,73 @@ export function OnboardingPage() {
     addFiles(e.dataTransfer.files);
   }
 
+  function validateIncomeStep(): boolean {
+    const n = parseIncomeDollars(annualIncomeInput);
+    if (n === null) {
+      setIncomeFieldError("Enter your estimated annual income in USD (whole dollars, 0 or more).");
+      return false;
+    }
+    setIncomeFieldError("");
+    return true;
+  }
+
+  function handleGoogleSignIn() {
+    setSignInError("");
+    setIsGoogleLoading(true);
+    window.setTimeout(() => {
+      setProfileFullName("Morgan Chen");
+      setProfileEmail("morgan.chen@gmail.com");
+      setIsGoogleLoading(false);
+      setStep(2);
+    }, 650);
+  }
+
+  function handleEmailSignInContinue() {
+    setSignInError("");
+    if (!isValidEmailFormat(signInEmail)) {
+      setSignInError("Enter a valid email address.");
+      return;
+    }
+    if (signInPassword.trim().length < 4) {
+      setSignInError("Password must be at least 4 characters (demo).");
+      return;
+    }
+    setProfileEmail(signInEmail.trim().toLowerCase());
+    setProfileFullName("");
+    setStep(2);
+  }
+
+  function validateProfileStep(): boolean {
+    let ok = true;
+    const name = profileFullName.trim();
+    if (!name) {
+      setProfileNameError("Enter your full legal name.");
+      ok = false;
+    } else {
+      setProfileNameError("");
+    }
+    if (!isValidEmailFormat(profileEmail)) {
+      setProfileEmailError("Enter a valid email address.");
+      ok = false;
+    } else {
+      setProfileEmailError("");
+    }
+    return ok;
+  }
+
   async function handleFinish() {
+    const income = parseIncomeDollars(annualIncomeInput);
     setIsSaving(true);
-    await saveOnboarding({ gigs: selectedGigs, integrations });
+    await saveOnboarding({
+      fullName: profileFullName.trim(),
+      email: profileEmail.trim().toLowerCase(),
+      gigs: selectedGigs,
+      integrations,
+      state: residenceState,
+      estimatedAnnualIncome: income ?? 0,
+    });
     setIsSaving(false);
-    setStep(4);
+    setStep(7);
   }
 
   const totalDetectedIncome = forms
@@ -225,7 +417,7 @@ export function OnboardingPage() {
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ background: "#050505", color: "#EDEDED" }}
+      style={{ background: "#0a0a0f", color: "#EDEDED" }}
     >
       {/* ── Ambient blobs ── */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
@@ -241,35 +433,38 @@ export function OnboardingPage() {
 
       {/* ── Top bar ── */}
       <header className="relative z-10 flex items-center justify-between px-8 py-5">
-        <div className="flex items-center gap-3">
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg"
-            style={{ background: "#00FF85", boxShadow: "0 0 16px rgba(0,255,133,0.4)" }}
-          >
-            <Zap className="h-4 w-4" style={{ color: "#050505" }} fill="currentColor" />
-          </div>
-          <span className="text-[15px] font-bold text-[#EDEDED] tracking-tight">GigATax</span>
+        <div className="flex items-center">
+          <GigaTaxWordmark size="xl" />
         </div>
 
-        {/* Step progress bar — 3 pills for 3 action steps */}
+        {/* Step progress — 7 pills */}
         <div className="flex items-center gap-1.5">
-          {STEPS.map((s) => (
-            <div
-              key={s.number}
-              className="h-1.5 rounded-full transition-all duration-300"
-              style={{
-                width: step === s.number ? "28px" : "10px",
-                background: step > s.number
-                  ? "#00FF85"
-                  : step === s.number
-                  ? "#3B82F6"
-                  : "rgba(255,255,255,0.1)",
-              }}
-            />
-          ))}
-          {step <= 3 && (
+          {STEPS.map((s) => {
+            const complete = step > s.number || step === TOTAL_ONBOARDING_STEPS;
+            const current = step === s.number && step < TOTAL_ONBOARDING_STEPS;
+            return (
+              <div
+                key={s.number}
+                className="h-1.5 rounded-full transition-all duration-300"
+                style={{
+                  width: current ? "28px" : step === TOTAL_ONBOARDING_STEPS ? "22px" : "10px",
+                  background: complete
+                    ? "#00FF85"
+                    : current
+                    ? "#3B82F6"
+                    : "rgba(255,255,255,0.1)",
+                }}
+              />
+            );
+          })}
+          {step < TOTAL_ONBOARDING_STEPS && (
             <span className="ml-2 text-[11px] font-medium" style={{ color: "#555555" }}>
-              {step} / 3
+              {step} / {TOTAL_ONBOARDING_STEPS}
+            </span>
+          )}
+          {step === TOTAL_ONBOARDING_STEPS && (
+            <span className="ml-2 text-[11px] font-medium" style={{ color: "#00FF85" }}>
+              {TOTAL_ONBOARDING_STEPS} / {TOTAL_ONBOARDING_STEPS} ✓
             </span>
           )}
         </div>
@@ -279,11 +474,9 @@ export function OnboardingPage() {
       <main className="relative z-10 flex flex-1 items-center justify-center px-6 py-10">
         <div className="w-full max-w-[560px]">
 
-          {/* ══════════════════ STEP 1 — Gig type ══════════════════ */}
+          {/* ══════════════════ STEP 1 — Sign in ══════════════════ */}
           {step === 1 && (
             <div className="animate-rise space-y-7">
-
-              {/* Trust signals — shown only on first screen */}
               <div
                 className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-2xl px-5 py-3"
                 style={{
@@ -293,8 +486,8 @@ export function OnboardingPage() {
               >
                 {[
                   { icon: "🔒", text: "256-bit encryption" },
-                  { icon: "✓", text: "SOC 2 Type II certified" },
-                  { icon: "★", text: "12,400+ gig workers filed" },
+                  { icon: "✓", text: "we don't sell your data" },
+                  { icon: "★", text: "built for creators, not accountants" },
                 ].map(({ icon, text }) => (
                   <div key={text} className="flex items-center gap-1.5">
                     <span className="text-[11px]" style={{ color: "#00FF85" }}>{icon}</span>
@@ -305,13 +498,183 @@ export function OnboardingPage() {
 
               <div className="text-center">
                 <p className="text-[11px] font-semibold tracking-[0.14em] uppercase mb-3" style={{ color: "rgba(0,255,133,0.7)" }}>
-                  Step 1 of 3
+                  Step 1 of {TOTAL_ONBOARDING_STEPS}
+                </p>
+                <h1 className="text-[2rem] font-bold leading-tight tracking-tight text-[#EDEDED] mb-3 flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1">
+                  <span className="font-bold">Sign in to</span>
+                  <GigaTaxWordmark size="2xl" className="translate-y-[0.06em]" />
+                </h1>
+                <p className="text-[14px] leading-relaxed" style={{ color: "#888888" }}>
+                  Use Google or email — demo only, no real authentication.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleLoading}
+                className="w-full flex items-center justify-center gap-3 rounded-2xl py-3.5 text-[14px] font-semibold transition-all duration-150 disabled:opacity-50 active:scale-[0.98]"
+                style={{
+                  background: "#EDEDED",
+                  color: "#0a0a0f",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                }}
+              >
+                {isGoogleLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" aria-hidden>
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                    </svg>
+                    Continue with Google
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.08)" }} />
+                <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: "#555555" }}>or</span>
+                <div className="h-px flex-1" style={{ background: "rgba(255,255,255,0.08)" }} />
+              </div>
+
+              <div className="space-y-3">
+                <label className="block space-y-1.5">
+                  <span className="text-[12px] font-medium" style={{ color: "#888888" }}>Email</span>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={signInEmail}
+                    onChange={(e) => {
+                      setSignInEmail(e.target.value);
+                      if (signInError) setSignInError("");
+                    }}
+                    placeholder="you@example.com"
+                    className="giga-input w-full"
+                  />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-[12px] font-medium" style={{ color: "#888888" }}>Password</span>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={signInPassword}
+                    onChange={(e) => {
+                      setSignInPassword(e.target.value);
+                      if (signInError) setSignInError("");
+                    }}
+                    placeholder="••••••••"
+                    className="giga-input w-full"
+                  />
+                </label>
+                {signInError ? (
+                  <p className="text-[12px] text-center" style={{ color: "#F87171" }}>{signInError}</p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={handleEmailSignInContinue}
+                  className="w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-semibold transition-all duration-150 active:scale-[0.98]"
+                  style={{ background: "#3B82F6", color: "#ffffff" }}
+                >
+                  <Mail className="h-4 w-4" />
+                  Continue with email
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════ STEP 2 — Confirm profile ══════════════════ */}
+          {step === 2 && (
+            <div className="animate-rise space-y-7">
+              <div className="text-center">
+                <p className="text-[11px] font-semibold tracking-[0.14em] uppercase mb-3" style={{ color: "rgba(59,130,246,0.85)" }}>
+                  Step 2 of {TOTAL_ONBOARDING_STEPS}
+                </p>
+                <h1 className="text-[2rem] font-bold leading-tight tracking-tight text-[#EDEDED] mb-3">
+                  Confirm your details
+                </h1>
+                <p className="text-[14px] leading-relaxed" style={{ color: "#888888" }}>
+                  We use your legal name and email on your tax profile and account — edit if anything looks off.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <label className="block space-y-1.5">
+                  <span className="text-[12px] font-medium" style={{ color: "#888888" }}>Full legal name</span>
+                  <input
+                    value={profileFullName}
+                    onChange={(e) => {
+                      setProfileFullName(e.target.value);
+                      if (profileNameError) setProfileNameError("");
+                    }}
+                    placeholder="Jordan Lee"
+                    className="giga-input w-full"
+                    autoFocus
+                  />
+                  {profileNameError ? (
+                    <p className="text-[12px]" style={{ color: "#F87171" }}>{profileNameError}</p>
+                  ) : null}
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-[12px] font-medium" style={{ color: "#888888" }}>Email</span>
+                  <input
+                    type="email"
+                    value={profileEmail}
+                    onChange={(e) => {
+                      setProfileEmail(e.target.value);
+                      if (profileEmailError) setProfileEmailError("");
+                    }}
+                    placeholder="you@example.com"
+                    className="giga-input w-full"
+                  />
+                  {profileEmailError ? (
+                    <p className="text-[12px]" style={{ color: "#F87171" }}>{profileEmailError}</p>
+                  ) : null}
+                </label>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="flex-1 rounded-2xl py-3.5 text-[13px] font-semibold transition-all duration-150"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#888888" }}
+                >
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (validateProfileStep()) setStep(3);
+                  }}
+                  className="flex-[2] flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-semibold transition-all duration-150 active:scale-[0.98]"
+                  style={{ background: "#3B82F6", color: "#ffffff" }}
+                >
+                  Continue <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════ STEP 3 — Gig type ══════════════════ */}
+          {step === 3 && (
+            <div className="animate-rise space-y-7">
+
+              <div className="text-center">
+                <p className="text-[11px] font-semibold tracking-[0.14em] uppercase mb-3" style={{ color: "rgba(0,255,133,0.7)" }}>
+                  Step 3 of {TOTAL_ONBOARDING_STEPS}
                 </p>
                 <h1 className="text-[2rem] font-bold leading-tight tracking-tight text-[#EDEDED] mb-3">
                   What's your gig?
                 </h1>
                 <p className="text-[14px] leading-relaxed" style={{ color: "#888888" }}>
-                  GigATax tailors your deductions to how you actually earn. Pick everything that applies.
+                  Taxes are annoying. We get it. Tell us how you earn — we&apos;ll match deductions to your real work.
+                </p>
+                <p className="text-[12px] mt-3" style={{ color: "#666666" }}>
+                  Already helping 2,400+ gig workers keep more of their money.
                 </p>
               </div>
 
@@ -362,10 +725,107 @@ export function OnboardingPage() {
                     {selectedGigs.length} selected: <span style={{ color: "#00FF85" }}>{selectedGigs.join(", ")}</span>
                   </p>
                 )}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="flex-1 rounded-2xl py-3.5 text-[13px] font-semibold transition-all duration-150"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#888888" }}
+                  >
+                    ← Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep(4)}
+                    disabled={selectedGigs.length === 0}
+                    className="flex-[2] flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-semibold transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98]"
+                    style={{ background: "#3B82F6", color: "#ffffff" }}
+                  >
+                    Continue → <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ══════════════════ STEP 4 — Estimated income + state ══════════════════ */}
+          {step === 4 && (
+            <div className="animate-rise space-y-7">
+              <div className="text-center">
+                <p className="text-[11px] font-semibold tracking-[0.14em] uppercase mb-3" style={{ color: "rgba(0,255,133,0.75)" }}>
+                  Step 4 of {TOTAL_ONBOARDING_STEPS}
+                </p>
+                <h1 className="text-[2rem] font-bold leading-tight tracking-tight text-[#EDEDED] mb-3">
+                  Income &amp; where you live
+                </h1>
+                <p className="text-[14px] leading-relaxed" style={{ color: "#888888" }}>
+                  We use this to tune your dashboard estimates — not as filing advice.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <label className="block space-y-1.5">
+                  <span className="text-[12px] font-medium" style={{ color: "#888888" }}>
+                    Estimated annual income (USD)
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={annualIncomeInput}
+                    onChange={(e) => {
+                      setAnnualIncomeInput(e.target.value);
+                      if (incomeFieldError) setIncomeFieldError("");
+                    }}
+                    onBlur={() => {
+                      const n = parseIncomeDollars(annualIncomeInput);
+                      if (n != null) setAnnualIncomeInput(n.toLocaleString("en-US"));
+                    }}
+                    placeholder="e.g. 52000"
+                    className="giga-input mn w-full"
+                    aria-invalid={Boolean(incomeFieldError)}
+                  />
+                  {incomeFieldError ? (
+                    <p className="text-[12px]" style={{ color: "#F87171" }}>{incomeFieldError}</p>
+                  ) : (
+                    <p className="text-[11px]" style={{ color: "#555555" }}>
+                      Whole dollars before taxes · required
+                    </p>
+                  )}
+                </label>
+
+                <label className="block space-y-1.5">
+                  <span className="text-[12px] font-medium" style={{ color: "#888888" }}>
+                    State of residence
+                  </span>
+                  <select
+                    value={residenceState}
+                    onChange={(e) => setResidenceState(e.target.value)}
+                    className="giga-input w-full"
+                  >
+                    <option value="TX">Texas</option>
+                    <option value="_coming_soon" disabled>
+                      More states coming soon
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="flex gap-3">
                 <button
-                  onClick={() => setStep(2)}
-                  disabled={selectedGigs.length === 0}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-semibold transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98]"
+                  type="button"
+                  onClick={() => setStep(3)}
+                  className="flex-1 rounded-2xl py-3.5 text-[13px] font-semibold transition-all duration-150"
+                  style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#888888" }}
+                >
+                  ← Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (validateIncomeStep()) setStep(5);
+                  }}
+                  className="flex-[2] flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-semibold transition-all duration-150 active:scale-[0.98]"
                   style={{ background: "#3B82F6", color: "#ffffff" }}
                 >
                   Continue <ArrowRight className="h-4 w-4" />
@@ -374,44 +834,46 @@ export function OnboardingPage() {
             </div>
           )}
 
-          {/* ══════════════════ STEP 2 — Connect accounts ══════════════════ */}
-          {step === 2 && (
+          {/* ══════════════════ STEP 5 — Connect accounts ══════════════════ */}
+          {step === 5 && (
             <div className="animate-rise space-y-7">
               <div className="text-center">
                 <p className="text-[11px] font-semibold tracking-[0.14em] uppercase mb-3" style={{ color: "rgba(59,130,246,0.8)" }}>
-                  Step 2 of 3
+                  Step 5 of {TOTAL_ONBOARDING_STEPS}
                 </p>
                 <h1 className="text-[2rem] font-bold leading-tight tracking-tight text-[#EDEDED] mb-3">
-                  Connect your platforms
+                  Connect your accounts
                 </h1>
                 <p className="text-[14px] leading-relaxed" style={{ color: "#888888" }}>
-                  Link the platforms you actually earn from. GigATax pulls income and mileage automatically so you never manually log a thing.
+                  Link where you get paid. We import income and activity so you&apos;re not retyping everything.
                 </p>
               </div>
 
               <div className="space-y-2.5">
-                {integrations.map((integration) => {
+                {(integrationsExpanded ? integrations : integrations.slice(0, INTEGRATIONS_PREVIEW)).map((integration) => {
                   const connected = integration.connected;
                   // Pick a platform icon by id
                   const PlatformIcon = {
-                    bank: Link2,
-                    youtube: Video,
-                    paypal:  Sparkles,
+                    bank:    ShieldCheck,
                     stripe:  BarChart3,
                     twitch:  Radio,
+                    youtube: Video,
+                    paypal:  Sparkles,
                     patreon: Music,
                   }[integration.id] ?? Link2;
+
+                  const burstKey = connectMoneyBurst[integration.id];
 
                   return (
                     <div
                       key={integration.id}
-                      className="flex items-center justify-between rounded-2xl px-5 py-4 transition-all duration-150"
+                      className="relative flex items-center justify-between rounded-2xl px-5 py-4 transition-all duration-150"
                       style={{
                         background: connected ? "rgba(0,255,133,0.04)" : "rgba(255,255,255,0.03)",
                         border: connected ? "1px solid rgba(0,255,133,0.2)" : "1px solid rgba(255,255,255,0.08)",
                       }}
                     >
-                      <div className="flex items-center gap-4">
+                      <div className="relative z-[2] flex items-center gap-4">
                         <div
                           className="flex h-10 w-10 items-center justify-center rounded-xl flex-shrink-0"
                           style={{ background: connected ? "rgba(0,255,133,0.1)" : "rgba(255,255,255,0.05)" }}
@@ -427,27 +889,77 @@ export function OnboardingPage() {
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => void handleIntegrationConnect(integration)}
-                        disabled={isPlaidConnecting && integration.id === "bank"}
-                        className="flex flex-shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-semibold transition-all duration-150 active:scale-[0.96]"
-                        style={
-                          connected
-                            ? { background: "rgba(0,255,133,0.1)", border: "1px solid rgba(0,255,133,0.3)", color: "#00FF85" }
-                            : { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#EDEDED" }
-                        }
-                      >
-                        <Link2 className="h-3.5 w-3.5" />
-                        {isPlaidConnecting && integration.id === "bank"
-                          ? "Connecting..."
-                          : connected
-                            ? "Connected"
-                            : "Connect"}
-                      </button>
+                      <div className="relative z-[2] flex-shrink-0">
+                        {burstKey != null && (
+                          <div
+                            key={burstKey}
+                            className="connect-money-burst pointer-events-none absolute inset-0 z-0 overflow-visible rounded-xl"
+                            aria-hidden
+                          >
+                            {[0, 1, 2, 3, 4].map((i) => (
+                              <span
+                                key={i}
+                                className="connect-money-piece mn"
+                                style={
+                                  {
+                                    "--x": `${-20 + i * 10}px`,
+                                    "--drift": `${-12 + i * 6}px`,
+                                    "--rot": `${-8 + i * 4}deg`,
+                                    "--delay": `${i * 55}ms`,
+                                    left: "50%",
+                                    top: "10%",
+                                  } as React.CSSProperties
+                                }
+                              >
+                                $
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => toggleIntegration(integration.id)}
+                          className="relative z-[1] flex items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-semibold transition-all duration-150 active:scale-[0.96]"
+                          style={
+                            connected
+                              ? { background: "rgba(0,255,133,0.1)", border: "1px solid rgba(0,255,133,0.3)", color: "#00FF85" }
+                              : { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", color: "#EDEDED" }
+                          }
+                        >
+                          <Link2 className="h-3.5 w-3.5" />
+                          {connected ? "Connected" : "Connect"}
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
               </div>
+
+              {/* See more / collapse */}
+              {integrations.length > INTEGRATIONS_PREVIEW && (
+                <button
+                  onClick={() => setIntegrationsExpanded((v) => !v)}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-[12px] font-semibold transition-all duration-150"
+                  style={{
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    color: "#888888",
+                  }}
+                >
+                  {integrationsExpanded ? (
+                    <><ChevronUp className="h-3.5 w-3.5" /> Show less</>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-3.5 w-3.5" />
+                      {`${integrations.length - INTEGRATIONS_PREVIEW} more platforms`}
+                    </>
+                  )}
+                </button>
+              )}
+
+              <p className="text-center text-[12px]" style={{ color: "#555555" }}>
+                🔒 Read-only access · We never move your money
+              </p>
 
               <p className="text-center text-[12px]" style={{ color: "#555555" }}>
                 You can connect more sources later from Settings.
@@ -455,14 +967,14 @@ export function OnboardingPage() {
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(4)}
                   className="flex-1 rounded-2xl py-3.5 text-[13px] font-semibold transition-all duration-150"
                   style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#888888" }}
                 >
                   ← Back
                 </button>
                 <button
-                  onClick={() => setStep(3)}
+                  onClick={() => setStep(6)}
                   className="flex-[2] flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-semibold transition-all duration-150 active:scale-[0.98]"
                   style={{ background: "#3B82F6", color: "#ffffff" }}
                 >
@@ -472,19 +984,31 @@ export function OnboardingPage() {
             </div>
           )}
 
-          {/* ══════════════════ STEP 3 — Upload 1099s ══════════════════ */}
-          {step === 3 && (
+          {/* ══════════════════ STEP 6 — Upload 1099s ══════════════════ */}
+          {step === 6 && (
             <div className="animate-rise space-y-7">
               <div className="text-center">
                 <p className="text-[11px] font-semibold tracking-[0.14em] uppercase mb-3" style={{ color: "rgba(59,130,246,0.8)" }}>
-                  Step 3 of 3
+                  Step 6 of {TOTAL_ONBOARDING_STEPS}
                 </p>
                 <h1 className="text-[2rem] font-bold leading-tight tracking-tight text-[#EDEDED] mb-3">
-                  Upload your 1099s
+                  Got a 1099? Drop it here.
                 </h1>
-                <p className="text-[14px] leading-relaxed" style={{ color: "#888888" }}>
-                  GigATax reads your 1099-K, 1099-NEC, and 1099-MISC to pre-fill your income automatically. PDF or image — we handle it.
-                </p>
+
+                {integration1099Subheading.kind === "payouts" ? (
+                  <>
+                    <p className="text-[14px] mt-2 leading-relaxed max-w-[480px] mx-auto" style={{ color: "#a3a3a3" }}>
+                      {integration1099Subheading.line1}
+                    </p>
+                    <p className="text-[14px] mt-2 leading-relaxed max-w-[480px] mx-auto" style={{ color: "#888888" }}>
+                      {integration1099Subheading.line2}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[14px] mt-2 leading-relaxed max-w-[480px] mx-auto" style={{ color: "#a3a3a3" }}>
+                    {integration1099Subheading.text}
+                  </p>
+                )}
               </div>
 
               {/* ── Drop zone ── */}
@@ -663,7 +1187,7 @@ export function OnboardingPage() {
               {/* Actions */}
               <div className="flex gap-3">
                 <button
-                  onClick={() => setStep(2)}
+                  onClick={() => setStep(5)}
                   className="flex-1 rounded-2xl py-3.5 text-[13px] font-semibold transition-all duration-150"
                   style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "#888888" }}
                 >
@@ -676,46 +1200,84 @@ export function OnboardingPage() {
                   style={{ background: "#00FF85", color: "#050505" }}
                 >
                   {isSaving ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" /> Setting up your workspace…</>
+                    <><Loader2 className="h-4 w-4 animate-spin" /> Crunching…</>
                   ) : forms.length > 0 ? (
-                    <><CheckCircle2 className="h-4 w-4" /> Import & Launch GigATax</>
+                    <><CheckCircle2 className="h-4 w-4" /> Continue with uploads</>
                   ) : (
-                    <><ArrowRight className="h-4 w-4" /> Skip & Launch GigATax</>
+                    <><ArrowRight className="h-4 w-4" /> Continue without uploads</>
                   )}
                 </button>
               </div>
             </div>
           )}
 
-          {/* ══════════════════ STEP 4 — You're in ══════════════════ */}
-          {step === 4 && (
-            <div className="animate-rise text-center space-y-8">
-              <div className="flex items-center justify-center">
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-full blur-2xl opacity-40" style={{ background: "#00FF85" }} />
+          {/* ══════════════════ STEP 7 — You're in ══════════════════ */}
+          {step === 7 && (
+            <div className="animate-rise text-center space-y-8 relative overflow-visible">
+              <div className="onboarding-confetti" aria-hidden="true" style={{ zIndex: 0 }}>
+                {Array.from({ length: 26 }).map((_, i) => (
+                  <span
+                    key={i}
+                    style={
+                      {
+                        "--delay": `${i * 42}ms`,
+                        "--x": `${6 + (i * 17) % 88}%`,
+                        "--dx": `${(i % 7) * 14 - 42}px`,
+                        "--c": ["#00FF85", "#3B82F6", "#A855F7", "#F59E0B", "#EDEDED"][i % 5],
+                      } as React.CSSProperties
+                    }
+                  />
+                ))}
+              </div>
+
+              <div className="relative z-10 flex items-center justify-center">
+                <div className="relative flex h-36 w-36 items-center justify-center">
+                  <div
+                    className="pointer-events-none absolute rounded-full success-check-ring"
+                    style={{
+                      width: "132px",
+                      height: "132px",
+                      background: "radial-gradient(circle, rgba(0,255,133,0.35) 0%, transparent 70%)",
+                      filter: "blur(2px)",
+                    }}
+                  />
+                  <div
+                    className="pointer-events-none absolute rounded-full success-check-ring"
+                    style={{
+                      width: "168px",
+                      height: "168px",
+                      border: "2px solid rgba(0,255,133,0.35)",
+                      opacity: 0.55,
+                    }}
+                  />
+                  <div className="absolute inset-0 rounded-full blur-2xl opacity-45" style={{ background: "#00FF85" }} />
                   <div
                     className="relative flex h-20 w-20 items-center justify-center rounded-full"
-                    style={{ background: "rgba(0,255,133,0.1)", border: "1px solid rgba(0,255,133,0.35)", boxShadow: "0 0 40px rgba(0,255,133,0.2)" }}
+                    style={{
+                      background: "rgba(0,255,133,0.12)",
+                      border: "1px solid rgba(0,255,133,0.45)",
+                      boxShadow: "0 0 48px rgba(0,255,133,0.35)",
+                    }}
                   >
                     <CheckCircle2 className="h-9 w-9" style={{ color: "#00FF85" }} />
                   </div>
                 </div>
               </div>
 
-              <div>
-                <h1 className="text-[2rem] font-bold leading-tight tracking-tight text-[#EDEDED] mb-3">
-                  You're all set.
+              <div className="relative z-10">
+                <h1 className="text-[1.75rem] sm:text-[1.95rem] font-extrabold leading-[1.2] tracking-tight text-[#EDEDED] mb-3">
+                  You&apos;re in. Let&apos;s maximize what you keep.
                 </h1>
                 <p className="text-[14px] leading-relaxed" style={{ color: "#888888" }}>
-                  GigATax is analyzing your transactions and identifying deductions in the background. Your Command Center is ready.
+                  We&apos;re updating your numbers in the background. Your overview is ready when you are.
                 </p>
               </div>
 
-              <div className="space-y-2 text-left">
+              <div className="relative z-10 space-y-2 text-left">
                 {[
-                  { icon: <BarChart3 className="h-4 w-4" />, text: "Dashboard with real-time savings counter" },
-                  { icon: <Sparkles className="h-4 w-4" />, text: "AI-categorized transaction feed" },
-                  { icon: <Zap className="h-4 w-4" />, text: "Mileage deduction slider — find money in minutes" },
+                  { icon: <BarChart3 className="h-4 w-4" />, text: "Savings tally that updates as you confirm deductions" },
+                  { icon: <Sparkles className="h-4 w-4" />, text: "Sorted transactions — edit categories anytime" },
+                  { icon: <Zap className="h-4 w-4" />, text: "Mileage tool — estimate business miles from fuel spend" },
                 ].map(({ icon, text }) => (
                   <div
                     key={text}
@@ -729,12 +1291,20 @@ export function OnboardingPage() {
               </div>
 
               <button
+                type="button"
                 onClick={() => navigate("/dashboard")}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-[15px] font-bold transition-all duration-150 active:scale-[0.98]"
-                style={{ background: "#00FF85", color: "#050505", boxShadow: "0 0 32px rgba(0,255,133,0.25)" }}
+                className="relative z-10 giga-cta-shimmer w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-[15px] font-extrabold transition-all duration-150 active:scale-[0.98]"
+                style={{
+                  background: "#00FF85",
+                  color: "#0a0a0f",
+                  boxShadow: "0 0 40px rgba(0,255,133,0.35), 0 12px 30px rgba(0,0,0,0.55)",
+                }}
               >
-                Enter GigATax
-                <ArrowRight className="h-5 w-5" />
+                <span className="flex items-center justify-center gap-2">
+                  <span>Enter</span>
+                  <GigaTaxWordmark size="md" tone="onAccent" />
+                  <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+                </span>
               </button>
             </div>
           )}
@@ -743,8 +1313,9 @@ export function OnboardingPage() {
       </main>
 
       <footer className="relative z-10 pb-6 text-center">
-        <p className="text-[11px]" style={{ color: "#333333" }}>
-          GigATax · TurboTax for the Gig Economy · Tax Year 2026
+        <p className="text-[11px] flex flex-wrap items-center justify-center gap-x-1.5 gap-y-0.5" style={{ color: "#333333" }}>
+          <GigaTaxWordmark size="xs" tone="subtle" />
+          <span>· independent work · tax year 2026</span>
         </p>
       </footer>
     </div>

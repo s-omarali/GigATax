@@ -2,6 +2,20 @@ const IRS_STANDARD_MILEAGE_RATE_2025 = 0.67;
 const DEFAULT_MARGINAL_TAX_RATE = 0.24;
 const FALLBACK_GAS_PRICE = 3.49;
 
+/**
+ * Demo-only rough federal-style marginal bracket for display — not tax advice.
+ * Uses simplified single-filer-ish thresholds for the UI.
+ */
+export function getDemoMarginalRateFromAnnualIncome(annualIncome: number): number {
+  const x = Math.max(0, annualIncome);
+  if (x <= 11_600) return 0.12;
+  if (x <= 47_150) return 0.22;
+  if (x <= 100_525) return 0.24;
+  if (x <= 191_950) return 0.32;
+  if (x <= 243_725) return 0.35;
+  return 0.37;
+}
+
 export function getAverageGasPriceForState(state: string, map: Record<string, number>): number {
   const key = state.trim().toUpperCase();
   return map[key] ?? FALLBACK_GAS_PRICE;

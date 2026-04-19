@@ -24,6 +24,19 @@ export const stateAbbreviations = [
   "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
 ];
 
+/** Full state names for onboarding `<select>` labels (`CA — California`). */
+export const usStateNames: Record<string, string> = {
+  AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California", CO: "Colorado",
+  CT: "Connecticut", DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", ID: "Idaho",
+  IL: "Illinois", IN: "Indiana", IA: "Iowa", KS: "Kansas", KY: "Kentucky", LA: "Louisiana",
+  ME: "Maine", MD: "Maryland", MA: "Massachusetts", MI: "Michigan", MN: "Minnesota", MS: "Mississippi",
+  MO: "Missouri", MT: "Montana", NE: "Nebraska", NV: "Nevada", NH: "New Hampshire", NJ: "New Jersey",
+  NM: "New Mexico", NY: "New York", NC: "North Carolina", ND: "North Dakota", OH: "Ohio", OK: "Oklahoma",
+  OR: "Oregon", PA: "Pennsylvania", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota",
+  TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont", VA: "Virginia", WA: "Washington",
+  WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
+};
+
 export const avgGasPriceByState2025: Record<string, number> = {
   AL: 3.27, AK: 3.74, AZ: 3.71, AR: 3.22, CA: 4.91, CO: 3.44, CT: 3.58, DE: 3.33,
   FL: 3.39, GA: 3.31, HI: 5.14, ID: 3.88, IL: 3.89, IN: 3.36, IA: 3.24, KS: 3.20,
@@ -39,19 +52,20 @@ export const mockUser: UserProfile = {
   fullName: "Alex Rivera",
   email: "alex@gigatax.app",
   gigs: ["Content Creator", "Video Editor"],
-  state: "CA",
+  state: "TX",
+  estimatedAnnualIncome: 52_000,
   estimatedMarginalTaxRate: 0.24,
   onboardingCompleted: true,
 };
 
-// Ordered: largest audience platforms first, then payment processors, then subscription
+// Bank account first (most universal), then payment processors, then creator platforms
 export const mockIntegrations: IntegrationConnection[] = [
-  { id: "bank", name: "Bank (Plaid)", description: "Connect checking and credit accounts for auto transaction sync", connected: false },
-  { id: "youtube", name: "YouTube",  description: "Pull AdSense revenue, memberships & sponsorship payouts",  connected: true,  lastSyncAt: "2026-04-11T09:10:00Z" },
-  { id: "paypal",  name: "PayPal",   description: "Sync client payments, invoices & freelance transfers",     connected: true,  lastSyncAt: "2026-04-10T12:00:00Z" },
-  { id: "stripe",  name: "Stripe",   description: "Import card payments, subscriptions & platform payouts",   connected: false },
-  { id: "twitch",  name: "Twitch",   description: "Auto-import subscription, bits & ad revenue",              connected: false },
-  { id: "patreon", name: "Patreon",  description: "Import tier membership income and platform fees",          connected: false },
+  { id: "bank",    name: "Bank Account", description: "We use Plaid to connect your account securely",         connected: false },
+  { id: "stripe",  name: "Stripe",       description: "Import card payments, subscriptions & platform payouts", connected: false },
+  { id: "twitch",  name: "Twitch",       description: "Auto-import subscriptions, bits & ad revenue",           connected: false },
+  { id: "youtube", name: "YouTube",      description: "Pull AdSense revenue, memberships & sponsorship payouts", connected: true, lastSyncAt: "2026-04-11T09:10:00Z" },
+  { id: "paypal",  name: "PayPal",       description: "Sync client payments, invoices & freelance transfers",    connected: true, lastSyncAt: "2026-04-10T12:00:00Z" },
+  { id: "patreon", name: "Patreon",      description: "Import tier membership income and platform fees",         connected: false },
 ];
 
 export const mockTransactions: Transaction[] = [
@@ -136,8 +150,19 @@ export const mockOptimizationSignals: OptimizationSignal[] = [
   {
     id: "sig_1",
     type: "vehicle_mileage",
+    completed: false,
+    label: "Vehicle mileage",
     gasSpend: 486.2,
     detectedPeriodLabel: "Last 90 days",
+  },
+  {
+    id: "sig_2",
+    type: "home_office",
+    completed: false,
+    label: "Home office",
+    workspaceSqFt: 120,
+    suggestedBusinessUsePercent: 18,
+    potentialSavingsHint: 220,
   },
 ];
 
@@ -153,9 +178,9 @@ export const mockFilingProfile: FilingProfile = {
   filingStatus: "single",
   dependents: 0,
   address1: "123 Creator Ave",
-  city: "Los Angeles",
-  state: "CA",
-  zipCode: "90012",
+  city: "Austin",
+  state: "TX",
+  zipCode: "78701",
 };
 
 export const mockFilingRun: FilingRun = {

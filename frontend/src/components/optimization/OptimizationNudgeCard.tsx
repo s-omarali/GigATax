@@ -1,14 +1,16 @@
 import { Car, DollarSign, Fuel, Gauge, MapPinned } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { getOptimizationMileage } from "../../services/mockApi";
-import type { OptimizationSignal } from "../../types/domain";
+import type { VehicleMileageOptimizationSignal } from "../../types/domain";
 import { formatCurrency, formatNumber, getEstimatedTaxSavings } from "../../utils/taxMath";
 import { LoadingState } from "../state/LoadingState";
 
 interface OptimizationNudgeCardProps {
-  signal: OptimizationSignal;
+  signal: VehicleMileageOptimizationSignal;
   stateCode: string;
   marginalTaxRate: number;
+  /** Marks this signal complete app-wide (dashboard badge, Action Required, etc.). */
+  onReviewComplete?: () => void;
 }
 
 interface MileageResult {
@@ -21,12 +23,17 @@ export function OptimizationNudgeCard({
   signal,
   stateCode,
   marginalTaxRate,
+  onReviewComplete,
 }: OptimizationNudgeCardProps) {
-  const [selectedState, setSelectedState] = useState(stateCode || "CA");
+  const [selectedState, setSelectedState] = useState(stateCode || "TX");
   const [mpg, setMpg] = useState(24);
   const [businessMiles, setBusinessMiles] = useState(450);
   const [result, setResult] = useState<MileageResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    setSelectedState((stateCode || "TX").slice(0, 2).toUpperCase());
+  }, [stateCode]);
 
   useEffect(() => {
     let isMounted = true;
@@ -73,7 +80,7 @@ export function OptimizationNudgeCard({
   const sliderPct = maxBusinessMiles > 0 ? (Math.min(businessMiles, maxBusinessMiles) / maxBusinessMiles) * 100 : 0;
 
   if (isLoading && !result) {
-    return <LoadingState title="Optimization Nudge" description="Crunching your mileage deduction estimate..." />;
+    return <LoadingState title="Mileage estimate" description="Crunching miles…" />;
   }
 
   return (
@@ -89,12 +96,15 @@ export function OptimizationNudgeCard({
             <Car className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[11px] font-semibold tracking-[0.1em] uppercase" style={{ color: "rgba(59,130,246,0.8)" }}>
-              Deduction opportunity
+            <p className="text-[11px] font-extrabold tracking-[0.1em] uppercase" style={{ color: "rgba(59,130,246,0.85)" }}>
+              Gas spend → miles → deduction
             </p>
-            <h2 className="text-[16px] font-bold text-[#EDEDED] leading-tight">
-              Vehicle Mileage Write-Off
+            <h2 className="text-[16px] font-extrabold text-[#EDEDED] leading-tight">
+              Business mileage deduction
             </h2>
+            <p className="text-[12px] mt-1.5 leading-snug" style={{ color: "#666666" }}>
+              Based on driving for your work — not personal trips.
+            </p>
           </div>
         </div>
         <span
@@ -139,7 +149,7 @@ export function OptimizationNudgeCard({
             value={selectedState}
             onChange={(e) => setSelectedState(e.target.value.toUpperCase())}
             maxLength={2}
-            placeholder="CA"
+            placeholder="TX"
             className="giga-input uppercase"
           />
         </label>
@@ -216,14 +226,14 @@ export function OptimizationNudgeCard({
             border: "1px solid rgba(59,130,246,0.2)",
           }}
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: "rgba(59,130,246,0.7)" }}>
-            Mileage Deduction
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.08em] mb-2" style={{ color: "rgba(59,130,246,0.75)" }}>
+            Standard mileage
           </p>
           <p className="mn text-[1.6rem] font-bold text-[#EDEDED] leading-none animate-ticker">
             {formatCurrency(result?.allowedDeductionAmount ?? 0)}
           </p>
           <p className="text-[11px] mt-1.5" style={{ color: "#555555" }}>
-            At $0.67/mile IRS rate (2025)
+            IRS per-mile rate × business miles
           </p>
         </div>
 
@@ -236,18 +246,36 @@ export function OptimizationNudgeCard({
             boxShadow: "0 0 28px rgba(0,255,133,0.07)",
           }}
         >
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: "rgba(0,255,133,0.7)" }}>
+          <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] mb-2" style={{ color: "rgba(0,255,133,0.75)" }}>
             <DollarSign className="h-3 w-3" />
-            Tax Savings
+            Estimated tax savings
           </p>
           <p className="mn text-[1.6rem] font-bold leading-none animate-ticker" style={{ color: "#00FF85" }}>
             {formatCurrency(taxSavings)}
           </p>
           <p className="text-[11px] mt-1.5" style={{ color: "#555555" }}>
-            At your {(marginalTaxRate * 100).toFixed(0)}% tax rate
+            At your {(marginalTaxRate * 100).toFixed(0)}% marginal rate — lower tax from the deduction, not a guarantee of refund.
           </p>
         </div>
       </div>
+
+      {onReviewComplete ? (
+        <div className="mt-6 border-t border-white/[0.06] pt-6">
+          <button
+            type="button"
+            onClick={onReviewComplete}
+            className="w-full rounded-xl px-4 py-3 text-[13px] font-extrabold transition-all duration-150 active:scale-[0.99]"
+            style={{
+              background: "rgba(0,255,133,0.12)",
+              border: "1px solid rgba(0,255,133,0.35)",
+              color: "#00FF85",
+              boxShadow: "0 0 22px rgba(0,255,133,0.12)",
+            }}
+          >
+            Confirm and complete review
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }

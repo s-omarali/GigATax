@@ -22,8 +22,14 @@ export interface DashboardResponse {
 }
 
 export interface OnboardingPayload {
+  fullName: string;
+  email: string;
   gigs: UserProfile["gigs"];
   integrations: IntegrationConnection[];
+  /** US state of residence, 2-letter code. */
+  state: string;
+  /** Whole dollars (≥ 0). */
+  estimatedAnnualIncome: number;
 }
 
 export interface ReceiptScanResponse {

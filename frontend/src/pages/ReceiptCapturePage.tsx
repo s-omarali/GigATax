@@ -34,6 +34,8 @@ export function ReceiptCapturePage() {
 
   // ── Receipt scan state ──────────────────────────────────────────
   const [fileName, setFileName] = useState("");
+  const [receiptDragging, setReceiptDragging] = useState(false);
+  const receiptInputRef = useRef<HTMLInputElement>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<{
     merchant: string;
@@ -85,10 +87,22 @@ export function ReceiptCapturePage() {
     });
   }, []);
 
-  function handleDrop(e: React.DragEvent) {
+  function handleDrop1099(e: React.DragEvent) {
     e.preventDefault();
     setDragActive(false);
     if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  }
+
+  function handleReceiptDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setReceiptDragging(false);
+    const f = e.dataTransfer.files[0];
+    if (f) setFileName(f.name);
+  }
+
+  function handleReceiptFilePick(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (f) setFileName(f.name);
   }
 
   const totalIncome = files1099
@@ -99,12 +113,15 @@ export function ReceiptCapturePage() {
     <div className="space-y-6 animate-rise">
       {/* ── Page header ─────────────────────────────────────────── */}
       <div>
-        <p className="text-[11px] font-semibold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(59,130,246,0.8)" }}>
-          Documents
+        <p className="text-[11px] font-extrabold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(59,130,246,0.85)" }}>
+          Receipts & tax forms
         </p>
-        <h1 className="text-[1.6rem] font-bold text-[#EDEDED] leading-tight">
-          Upload & Scan
+        <h1 className="text-[1.6rem] font-extrabold text-[#EDEDED] leading-tight">
+          Upload receipts and forms
         </h1>
+        <p className="text-[13px] mt-2" style={{ color: "#888888" }}>
+          Receipts cover day-to-day expenses. 1099s report income from payers. Same upload flow for both.
+        </p>
       </div>
 
       {/* ── Tab switcher ────────────────────────────────────────── */}
@@ -116,8 +133,8 @@ export function ReceiptCapturePage() {
         }}
       >
         {([
-          { id: "receipt" as ActiveTab,  label: "Scan a Receipt",   icon: Camera   },
-          { id: "form1099" as ActiveTab, label: "Upload 1099 Forms", icon: FileText },
+          { id: "receipt" as ActiveTab,  label: "Receipts (expenses)", icon: Camera   },
+          { id: "form1099" as ActiveTab, label: "1099s (income)",      icon: FileText },
         ] as const).map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -147,31 +164,98 @@ export function ReceiptCapturePage() {
       {activeTab === "receipt" && (
         <>
           <section className="bento-card" style={{ padding: "24px" }}>
-            <p className="text-[13px] font-medium text-[#EDEDED] mb-1">Receipt image file name</p>
-            <p className="text-[12px] mb-4" style={{ color: "#888888" }}>
-              Enter the filename of your receipt image and we'll extract the merchant, amount, and date automatically.
+            <p className="text-[13px] font-extrabold text-[#EDEDED] mb-1">Receipts — everyday purchases</p>
+            <p className="text-[12px] mb-5" style={{ color: "#888888" }}>
+              Gas, gear, software, whatever. Drop a pic/PDF and we&apos;ll pull merchant + total so you don&apos;t type it.
             </p>
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => receiptInputRef.current?.click()}
+              onKeyDown={(e) => e.key === "Enter" && receiptInputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setReceiptDragging(true); }}
+              onDragLeave={() => setReceiptDragging(false)}
+              onDrop={handleReceiptDrop}
+              className="relative flex flex-col items-center justify-center rounded-2xl cursor-pointer transition-all duration-200 select-none"
+              style={{
+                minHeight: "180px",
+                padding: "36px 24px",
+                background: receiptDragging
+                  ? "rgba(59,130,246,0.07)"
+                  : "rgba(255,255,255,0.02)",
+                border: receiptDragging
+                  ? "2px dashed rgba(59,130,246,0.6)"
+                  : "2px dashed rgba(255,255,255,0.1)",
+                boxShadow: receiptDragging
+                  ? "0 0 0 4px rgba(59,130,246,0.08), inset 0 0 40px rgba(59,130,246,0.04)"
+                  : "none",
+              }}
+            >
               <input
-                value={fileName}
-                onChange={(e) => setFileName(e.target.value)}
-                placeholder="e.g. shell_april_receipt.jpg"
-                className="giga-input"
+                ref={receiptInputRef}
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg"
+                className="hidden"
+                onChange={handleReceiptFilePick}
               />
+              <div className="relative mb-4">
+                {receiptDragging && (
+                  <div
+                    className="absolute inset-0 rounded-full blur-xl opacity-60"
+                    style={{ background: "#3B82F6", width: "56px", height: "56px", transform: "translate(-4px,-4px)" }}
+                  />
+                )}
+                <div
+                  className="relative flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-200"
+                  style={{
+                    background: receiptDragging ? "rgba(59,130,246,0.15)" : "rgba(255,255,255,0.05)",
+                    border: receiptDragging ? "1px solid rgba(59,130,246,0.4)" : "1px solid rgba(255,255,255,0.08)",
+                  }}
+                >
+                  <UploadCloud
+                    className="h-6 w-6 transition-transform duration-200"
+                    style={{
+                      color: receiptDragging ? "#3B82F6" : "#555555",
+                      transform: receiptDragging ? "translateY(-2px)" : "none",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <p className="text-[14px] font-semibold text-[#EDEDED] mb-1">
+                {receiptDragging ? "Drop it" : "Drop a receipt here"}
+              </p>
+              <p className="text-[12px]" style={{ color: "#555555" }}>
+                or{" "}
+                <span className="font-medium" style={{ color: "#3B82F6" }}>
+                  click to browse
+                </span>
+                {" "}· PDF, PNG, JPG
+              </p>
+              {fileName ? (
+                <p className="text-[12px] mt-4 font-mono truncate max-w-full px-2" style={{ color: "#00FF85" }}>
+                  Selected: {fileName}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
+                type="button"
                 onClick={() => void handleScan()}
                 disabled={!fileName || isScanning}
-                className="flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-3 text-[13px] font-extrabold transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{ background: "#3B82F6", color: "#ffffff" }}
               >
                 <Upload className="h-4 w-4" />
-                Scan Receipt
+                Scan it
               </button>
             </div>
           </section>
 
           {isScanning && (
-            <LoadingState title="Scanning receipt" description="Reading merchant, amount, and date from your image..." />
+            <LoadingState title="Scanning receipt" description="Extracting merchant, amount, and date…" />
           )}
 
           {scanResult && !isScanning && (
@@ -222,20 +306,21 @@ export function ReceiptCapturePage() {
               </div>
 
               <button
+                type="button"
                 onClick={() => setSaved(true)}
-                className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-semibold transition-all duration-150"
+                className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-[13px] font-extrabold transition-all duration-150"
                 style={{ background: "rgba(0,255,133,0.1)", border: "1px solid rgba(0,255,133,0.3)", color: "#00FF85" }}
               >
                 <Sparkles className="h-4 w-4" />
-                Save Classification
+                Save classification
               </button>
             </section>
           )}
 
           {saved && (
             <SuccessState
-              title="Receipt saved"
-              description={`Applied category "${category}"${customRule ? ` with rule: "${customRule}"` : ""}.`}
+              title="LET'S GO."
+              description={`Saved as "${category}"${customRule ? ` · rule: "${customRule}"` : ""}.`}
             />
           )}
         </>
@@ -245,10 +330,12 @@ export function ReceiptCapturePage() {
       {activeTab === "form1099" && (
         <>
           <section className="bento-card" style={{ padding: "24px" }}>
-            <p className="text-[13px] font-medium text-[#EDEDED] mb-1">Upload your 1099 forms</p>
-            <p className="text-[12px] mb-5" style={{ color: "#888888" }}>
-              Drag in your 1099-NEC or 1099-K PDFs — the ones that show what each platform paid you.
-              GigATax reads them and pulls the payer name and total income automatically.
+            <p className="text-[13px] font-extrabold text-[#EDEDED] mb-1">1099 income forms</p>
+            <p className="text-[12px] mb-2" style={{ color: "#888888" }}>
+              Not receipts — these are information returns: 1099-NEC, 1099-K, and similar forms payers file to report what they paid you.
+            </p>
+            <p className="text-[12px] mb-5" style={{ color: "#666666" }}>
+              Upload PDF or image. We read payer names and income totals for your return.
             </p>
 
             {/* Drop zone */}
@@ -256,7 +343,7 @@ export function ReceiptCapturePage() {
               ref={dropRef}
               onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
               onDragLeave={() => setDragActive(false)}
-              onDrop={handleDrop}
+              onDrop={handleDrop1099}
               className="flex flex-col items-center justify-center gap-3 rounded-2xl py-12 px-6 text-center transition-all duration-200 cursor-pointer"
               style={{
                 border: dragActive

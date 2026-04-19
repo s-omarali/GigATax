@@ -1,5 +1,5 @@
-/* ── Google Fonts — Inter + JetBrains Mono ──────────────────────────────── */
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+/* ── Google Fonts — Inter + JetBrains Mono + Syne (marketing display) ───── */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Montserrat:ital,wght@1,900&family=Syne:wght@600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -18,8 +18,8 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background-color: #050505;
-  color: #EDEDED;
+  background-color: #0a0a0f;
+  color: #ededed;
   font-family: "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
@@ -67,6 +67,19 @@ body {
     0 0 0 1px rgba(255, 255, 255, 0.08),
     0 12px 40px rgba(0, 0, 0, 0.8),
     inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+/** Marketing landing: full-width bento with no inner padding (sections add their own). */
+.bento-card--flush {
+  padding: 0;
+}
+
+/* Large hero metric: skip backdrop-blur — under animated/transform parents it often repaints
+   and flickers in Chrome; opaque fill reads the same at this size. */
+.bento-card--hero-surface {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-color: rgba(22, 22, 28, 0.94);
 }
 
 /* Variant: tight padding for compact contexts */
@@ -179,5 +192,213 @@ input[type="range"]::-moz-range-thumb {
 /* ── Select ─────────────────────────────────────────────────────────────── */
 .giga-input option {
   background: #0f0f0f;
-  color: #EDEDED;
+  color: #ededed;
+}
+
+/* ── Onboarding success: confetti burst (CSS only) ─────────────────────── */
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, -120%, 0) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--dx, 0), 420px, 0) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.onboarding-confetti {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  z-index: 0;
+}
+
+.onboarding-confetti span {
+  position: absolute;
+  top: -12px;
+  width: 6px;
+  height: 10px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: confetti-fall 2.8s ease-out forwards;
+  animation-delay: var(--delay, 0ms);
+  left: var(--x, 50%);
+  background: var(--c, #00ff85);
+  box-shadow: 0 0 10px rgba(0, 255, 133, 0.35);
+}
+
+/* ── Onboarding connect: lightweight falling $ (few nodes, short animation) ─ */
+@keyframes connect-money-fall {
+  0% {
+    transform: translate(calc(-50% + var(--x, 0px)), 0) rotate(var(--rot, 0deg));
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--x, 0px) + var(--drift, 0px)), 92px)
+      rotate(calc(var(--rot, 0deg) + 14deg));
+    opacity: 0;
+  }
+}
+
+.connect-money-burst {
+  overflow: visible;
+}
+
+.connect-money-piece {
+  position: absolute;
+  font-size: 13px;
+  font-weight: 800;
+  color: #00ff85;
+  text-shadow: 0 0 8px rgba(0, 255, 133, 0.4);
+  opacity: 0;
+  animation: connect-money-fall 0.72s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+/* ── CTA shimmer (Enter GigATax / primary greens) ──────────────────────── */
+@keyframes cta-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.giga-cta-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.giga-cta-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 45%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  animation: cta-shimmer 2.2s ease-in-out infinite;
+  opacity: 0.55;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* ── Success check pulse ring ───────────────────────────────────────────── */
+@keyframes success-ring-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.85;
+  }
+}
+
+.success-check-ring {
+  animation: success-ring-pulse 2.2s ease-in-out infinite;
+}
+
+/* ── Loot card: feed row entrance + one-shot glow ───────────────────────── */
+@keyframes loot-card-in {
+  0% {
+    transform: scale(0.97);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.01);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes loot-glow-once {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(0, 255, 133, 0);
+  }
+  45% {
+    box-shadow: 0 0 26px rgba(0, 255, 133, 0.18);
+  }
+}
+
+.animate-loot-card {
+  animation: loot-card-in 0.52s ease-out both, loot-glow-once 1.1s ease-out 0.08s 1;
+}
+
+/* ── Landing atmosphere — micro-grain + vignette (premium depth) ───────── */
+.landing-grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.055;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.landing-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+  background: radial-gradient(
+    ellipse 85% 70% at 50% 38%,
+    transparent 0%,
+    transparent 42%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+
+@keyframes landing-orb-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(14px, -10px, 0) scale(1.03);
+  }
+}
+
+@keyframes landing-orb-drift-slow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-18px, 12px, 0) scale(1.02);
+  }
+}
+
+.landing-orb {
+  will-change: transform;
+}
+
+.landing-orb--a {
+  animation: landing-orb-drift 28s ease-in-out infinite;
+}
+
+.landing-orb--b {
+  animation: landing-orb-drift-slow 36s ease-in-out infinite;
+}
+
+.landing-orb--c {
+  animation: landing-orb-drift 42s ease-in-out infinite reverse;
 }
