@@ -68,56 +68,104 @@ export const mockIntegrations: IntegrationConnection[] = [
   { id: "patreon", name: "Patreon",      description: "Import tier membership income and platform fees",         connected: false },
 ];
 
-export const mockTransactions: Transaction[] = [
-  { id: "txn_1", date: "2026-04-17", merchant: "YouTube", amount: 3200, type: "income", category: "Income", confidenceScore: 0.99, source: "bank" },
-  { id: "txn_2", date: "2026-04-16", merchant: "Adobe", amount: 59.99, type: "expense", category: "Software", confidenceScore: 0.97, source: "bank" },
-  { id: "txn_3", date: "2026-04-16", merchant: "Shell", amount: 486.2, type: "expense", category: "Vehicle", confidenceScore: 0.92, source: "bank", notes: "Multiple fuel fills detected" },
-  { id: "txn_4", date: "2026-04-14", merchant: "Delta", amount: 417.35, type: "expense", category: "Travel", confidenceScore: 0.9, source: "email" },
-  { id: "txn_5", date: "2026-04-13", merchant: "Best Buy", amount: 179.99, type: "expense", category: "Supplies", confidenceScore: 0.73, source: "receipt" },
-  { id: "txn_6", date: "2026-04-11", merchant: "Patreon", amount: 950, type: "income", category: "Income", confidenceScore: 0.96, source: "bank" },
-];
-
-export const mockTransactionsByCategory: Record<TransactionCategory, Transaction[]> = {
-  Income: [
-    { id: "cat-inc-1", date: "2026-04-17", merchant: "YouTube", amount: 3200, type: "income", category: "Income", confidenceScore: 0.99, source: "bank" },
-    { id: "cat-inc-2", date: "2026-04-11", merchant: "Patreon", amount: 950, type: "income", category: "Income", confidenceScore: 0.96, source: "bank" },
-    { id: "cat-inc-3", date: "2026-04-08", merchant: "Stripe", amount: 740, type: "income", category: "Income", confidenceScore: 0.95, source: "bank" },
+const MOCK_GIG_TRANSACTIONS: Record<GigType, Transaction[]> = {
+  "Content Creator": [
+    { id: "cc-1", date: "2026-04-17", merchant: "YouTube", amount: 3200, type: "income", category: "Income", confidenceScore: 0.99, source: "bank" },
+    { id: "cc-2", date: "2026-04-15", merchant: "Patreon", amount: 950, type: "income", category: "Income", confidenceScore: 0.96, source: "bank" },
+    { id: "cc-3", date: "2026-04-14", merchant: "Adobe", amount: 59.99, type: "expense", category: "Software", confidenceScore: 0.97, source: "bank" },
+    { id: "cc-4", date: "2026-04-12", merchant: "Best Buy", amount: 179.99, type: "expense", category: "Supplies", confidenceScore: 0.84, source: "receipt" },
+    { id: "cc-5", date: "2026-04-11", merchant: "Shell", amount: 138.5, type: "expense", category: "Vehicle", confidenceScore: 0.9, source: "bank" },
+    { id: "cc-6", date: "2026-04-10", merchant: "McDonald's", amount: 12.49, type: "expense", category: "Personal", confidenceScore: 0.98, source: "bank", notes: "Personal expense (non-deductible)" },
+    { id: "cc-7", date: "2026-04-08", merchant: "7-Eleven", amount: 7.25, type: "expense", category: "Personal", confidenceScore: 0.96, source: "receipt", notes: "Personal snacks (non-deductible)" },
   ],
-  Software: [
-    { id: "cat-sw-1", date: "2026-04-16", merchant: "Adobe", amount: 59.99, type: "expense", category: "Software", confidenceScore: 0.97, source: "bank" },
-    { id: "cat-sw-2", date: "2026-04-12", merchant: "Notion", amount: 12.0, type: "expense", category: "Software", confidenceScore: 0.95, source: "bank" },
-    { id: "cat-sw-3", date: "2026-04-09", merchant: "Canva", amount: 14.99, type: "expense", category: "Software", confidenceScore: 0.94, source: "email" },
+  "Video Editor": [
+    { id: "ve-1", date: "2026-04-16", merchant: "Upwork", amount: 2250, type: "income", category: "Income", confidenceScore: 0.97, source: "bank" },
+    { id: "ve-2", date: "2026-04-13", merchant: "Frame.io", amount: 15.0, type: "expense", category: "Software", confidenceScore: 0.95, source: "bank" },
+    { id: "ve-3", date: "2026-04-12", merchant: "DaVinci Resolve", amount: 29.0, type: "expense", category: "Software", confidenceScore: 0.94, source: "bank" },
+    { id: "ve-4", date: "2026-04-10", merchant: "B&H", amount: 84.6, type: "expense", category: "Supplies", confidenceScore: 0.88, source: "receipt" },
+    { id: "ve-5", date: "2026-04-09", merchant: "Delta", amount: 312.2, type: "expense", category: "Travel", confidenceScore: 0.91, source: "email" },
+    { id: "ve-6", date: "2026-04-07", merchant: "Chipotle", amount: 14.95, type: "expense", category: "Personal", confidenceScore: 0.96, source: "bank", notes: "Personal meal (non-deductible)" },
+    { id: "ve-7", date: "2026-04-05", merchant: "Target Snacks", amount: 9.4, type: "expense", category: "Personal", confidenceScore: 0.95, source: "receipt", notes: "Personal snacks (non-deductible)" },
   ],
-  Travel: [
-    { id: "cat-tr-1", date: "2026-04-14", merchant: "Delta", amount: 417.35, type: "expense", category: "Travel", confidenceScore: 0.9, source: "email" },
-    { id: "cat-tr-2", date: "2026-04-10", merchant: "Uber", amount: 43.2, type: "expense", category: "Travel", confidenceScore: 0.93, source: "bank" },
-    { id: "cat-tr-3", date: "2026-04-06", merchant: "Hilton", amount: 219.0, type: "expense", category: "Travel", confidenceScore: 0.89, source: "bank" },
+  "Streamer": [
+    { id: "st-1", date: "2026-04-17", merchant: "Twitch", amount: 1480, type: "income", category: "Income", confidenceScore: 0.98, source: "bank" },
+    { id: "st-2", date: "2026-04-15", merchant: "PayPal Tips", amount: 410, type: "income", category: "Income", confidenceScore: 0.95, source: "bank" },
+    { id: "st-3", date: "2026-04-14", merchant: "Elgato", amount: 149.0, type: "expense", category: "Supplies", confidenceScore: 0.91, source: "receipt" },
+    { id: "st-4", date: "2026-04-12", merchant: "Canva", amount: 15.0, type: "expense", category: "Software", confidenceScore: 0.93, source: "email" },
+    { id: "st-5", date: "2026-04-11", merchant: "Uber", amount: 28.6, type: "expense", category: "Travel", confidenceScore: 0.86, source: "bank" },
+    { id: "st-6", date: "2026-04-10", merchant: "McDonald's", amount: 10.89, type: "expense", category: "Personal", confidenceScore: 0.97, source: "bank", notes: "Personal expense (non-deductible)" },
+    { id: "st-7", date: "2026-04-08", merchant: "Circle K", amount: 6.75, type: "expense", category: "Personal", confidenceScore: 0.95, source: "receipt", notes: "Personal snacks (non-deductible)" },
   ],
-  Meals: [
-    { id: "cat-me-1", date: "2026-04-15", merchant: "Sweetgreen", amount: 21.45, type: "expense", category: "Meals", confidenceScore: 0.91, source: "receipt" },
-    { id: "cat-me-2", date: "2026-04-12", merchant: "Blue Bottle", amount: 18.2, type: "expense", category: "Meals", confidenceScore: 0.9, source: "bank" },
-    { id: "cat-me-3", date: "2026-04-07", merchant: "DoorDash", amount: 33.75, type: "expense", category: "Meals", confidenceScore: 0.88, source: "email" },
+  "Photographer": [
+    { id: "ph-1", date: "2026-04-16", merchant: "HoneyBook", amount: 2100, type: "income", category: "Income", confidenceScore: 0.98, source: "bank" },
+    { id: "ph-2", date: "2026-04-13", merchant: "Pixieset", amount: 680, type: "income", category: "Income", confidenceScore: 0.94, source: "bank" },
+    { id: "ph-3", date: "2026-04-12", merchant: "LensRentals", amount: 175.0, type: "expense", category: "Supplies", confidenceScore: 0.92, source: "receipt" },
+    { id: "ph-4", date: "2026-04-11", merchant: "Chevron", amount: 118.7, type: "expense", category: "Vehicle", confidenceScore: 0.9, source: "bank" },
+    { id: "ph-5", date: "2026-04-09", merchant: "Hilton", amount: 264.0, type: "expense", category: "Travel", confidenceScore: 0.87, source: "email" },
+    { id: "ph-6", date: "2026-04-07", merchant: "Chick-fil-A", amount: 13.2, type: "expense", category: "Personal", confidenceScore: 0.96, source: "bank", notes: "Personal meal (non-deductible)" },
+    { id: "ph-7", date: "2026-04-06", merchant: "CVS", amount: 8.9, type: "expense", category: "Personal", confidenceScore: 0.95, source: "receipt", notes: "Personal item (non-deductible)" },
   ],
-  Vehicle: [
-    { id: "cat-veh-1", date: "2026-04-16", merchant: "Shell", amount: 486.2, type: "expense", category: "Vehicle", confidenceScore: 0.92, source: "bank", notes: "Multiple fuel fills detected" },
-    { id: "cat-veh-2", date: "2026-04-10", merchant: "Chevron", amount: 122.34, type: "expense", category: "Vehicle", confidenceScore: 0.91, source: "bank" },
-    { id: "cat-veh-3", date: "2026-04-05", merchant: "Exxon", amount: 98.17, type: "expense", category: "Vehicle", confidenceScore: 0.9, source: "bank" },
+  "Podcaster": [
+    { id: "po-1", date: "2026-04-17", merchant: "Spotify", amount: 930, type: "income", category: "Income", confidenceScore: 0.95, source: "bank" },
+    { id: "po-2", date: "2026-04-15", merchant: "Patreon", amount: 340, type: "income", category: "Income", confidenceScore: 0.94, source: "bank" },
+    { id: "po-3", date: "2026-04-13", merchant: "Riverside", amount: 24.0, type: "expense", category: "Software", confidenceScore: 0.92, source: "bank" },
+    { id: "po-4", date: "2026-04-12", merchant: "Shure", amount: 199.0, type: "expense", category: "Supplies", confidenceScore: 0.9, source: "receipt" },
+    { id: "po-5", date: "2026-04-10", merchant: "Uber", amount: 32.4, type: "expense", category: "Travel", confidenceScore: 0.85, source: "bank" },
+    { id: "po-6", date: "2026-04-08", merchant: "Subway", amount: 11.35, type: "expense", category: "Personal", confidenceScore: 0.96, source: "bank", notes: "Personal meal (non-deductible)" },
+    { id: "po-7", date: "2026-04-07", merchant: "Snack Stop", amount: 5.8, type: "expense", category: "Personal", confidenceScore: 0.95, source: "receipt", notes: "Personal snacks (non-deductible)" },
   ],
-  "Home Office": [
-    { id: "cat-ho-1", date: "2026-04-13", merchant: "IKEA", amount: 124.0, type: "expense", category: "Home Office", confidenceScore: 0.86, source: "receipt" },
-    { id: "cat-ho-2", date: "2026-04-09", merchant: "Staples", amount: 47.6, type: "expense", category: "Home Office", confidenceScore: 0.87, source: "receipt" },
-    { id: "cat-ho-3", date: "2026-04-04", merchant: "Amazon", amount: 89.99, type: "expense", category: "Home Office", confidenceScore: 0.84, source: "email" },
-  ],
-  Supplies: [
-    { id: "cat-sup-1", date: "2026-04-13", merchant: "Best Buy", amount: 179.99, type: "expense", category: "Supplies", confidenceScore: 0.73, source: "receipt" },
-    { id: "cat-sup-2", date: "2026-04-11", merchant: "B&H", amount: 64.5, type: "expense", category: "Supplies", confidenceScore: 0.88, source: "bank" },
-    { id: "cat-sup-3", date: "2026-04-03", merchant: "Target", amount: 39.2, type: "expense", category: "Supplies", confidenceScore: 0.82, source: "receipt" },
-  ],
-  Uncategorized: [
-    { id: "cat-unc-1", date: "2026-04-12", merchant: "Square", amount: 49.0, type: "expense", category: "Uncategorized", confidenceScore: 0.54, source: "bank" },
-    { id: "cat-unc-2", date: "2026-04-08", merchant: "Unknown Merchant", amount: 27.5, type: "expense", category: "Uncategorized", confidenceScore: 0.51, source: "email" },
+  "Freelance Writer": [
+    { id: "fw-1", date: "2026-04-16", merchant: "Substack", amount: 880, type: "income", category: "Income", confidenceScore: 0.96, source: "bank" },
+    { id: "fw-2", date: "2026-04-13", merchant: "Wise", amount: 1240, type: "income", category: "Income", confidenceScore: 0.95, source: "bank" },
+    { id: "fw-3", date: "2026-04-12", merchant: "Grammarly", amount: 12.0, type: "expense", category: "Software", confidenceScore: 0.94, source: "bank" },
+    { id: "fw-4", date: "2026-04-10", merchant: "Amazon Books", amount: 54.2, type: "expense", category: "Supplies", confidenceScore: 0.88, source: "email" },
+    { id: "fw-5", date: "2026-04-09", merchant: "Blue Bottle", amount: 23.6, type: "expense", category: "Meals", confidenceScore: 0.84, source: "bank" },
+    { id: "fw-6", date: "2026-04-08", merchant: "McDonald's", amount: 9.75, type: "expense", category: "Personal", confidenceScore: 0.97, source: "bank", notes: "Personal expense (non-deductible)" },
+    { id: "fw-7", date: "2026-04-06", merchant: "Doritos (Corner Store)", amount: 4.5, type: "expense", category: "Personal", confidenceScore: 0.94, source: "receipt", notes: "Personal snacks (non-deductible)" },
   ],
 };
+
+export function getMockTransactionsForGigs(gigs: GigType[]): Transaction[] {
+  const selected: GigType[] = gigs.length ? gigs : ["Content Creator"];
+  const merged: Transaction[] = [];
+  const seen = new Set<string>();
+
+  for (const gig of selected) {
+    const rows = MOCK_GIG_TRANSACTIONS[gig] ?? [];
+    for (const tx of rows) {
+      if (seen.has(tx.id)) continue;
+      seen.add(tx.id);
+      merged.push({ ...tx });
+    }
+  }
+
+  return merged.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function getMockTransactionsByCategory(transactions: Transaction[]): Record<TransactionCategory, Transaction[]> {
+  const grouped: Record<TransactionCategory, Transaction[]> = {
+    Income: [],
+    Software: [],
+    Travel: [],
+    Meals: [],
+    Vehicle: [],
+    "Home Office": [],
+    Supplies: [],
+    Personal: [],
+    Uncategorized: [],
+  };
+
+  for (const tx of transactions) {
+    grouped[tx.category].push(tx);
+  }
+
+  return grouped;
+}
+
+export const mockTransactions = getMockTransactionsForGigs(mockUser.gigs);
+
+export const mockTransactionsByCategory: Record<TransactionCategory, Transaction[]> =
+  getMockTransactionsByCategory(mockTransactions);
 
 export const mockDeductions: Deduction[] = [
   {
