@@ -17,7 +17,6 @@ export const gigOptions: GigType[] = [
   "Photographer",
   "Podcaster",
   "Freelance Writer",
-  "OnlyFans Creator",
 ];
 
 export const stateAbbreviations = [
@@ -44,10 +43,13 @@ export const mockUser: UserProfile = {
   onboardingCompleted: true,
 };
 
+// Ordered: largest audience platforms first, then payment processors, then subscription
 export const mockIntegrations: IntegrationConnection[] = [
-  { id: "bank", name: "Bank / Plaid", connected: true, lastSyncAt: "2026-04-10T12:00:00Z" },
-  { id: "email", name: "Email Receipts", connected: true, lastSyncAt: "2026-04-11T09:10:00Z" },
-  { id: "accounting", name: "Accounting Tool", connected: false },
+  { id: "youtube", name: "YouTube",  description: "Pull AdSense revenue, memberships & sponsorship payouts",  connected: true,  lastSyncAt: "2026-04-11T09:10:00Z" },
+  { id: "paypal",  name: "PayPal",   description: "Sync client payments, invoices & freelance transfers",     connected: true,  lastSyncAt: "2026-04-10T12:00:00Z" },
+  { id: "stripe",  name: "Stripe",   description: "Import card payments, subscriptions & platform payouts",   connected: false },
+  { id: "twitch",  name: "Twitch",   description: "Auto-import subscription, bits & ad revenue",              connected: false },
+  { id: "patreon", name: "Patreon",  description: "Import tier membership income and platform fees",          connected: false },
 ];
 
 export const mockTransactions: Transaction[] = [

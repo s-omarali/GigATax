@@ -21,27 +21,27 @@ export function OptimizationPage() {
       setIsLoading(false);
     }
     void load();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, []);
 
-  if (isLoading) {
-    return <LoadingState title="Optimization" description="Generating deduction checklist from your activity..." />;
-  }
-
-  if (!signal || !user) {
-    return <EmptyState title="No optimization signals" description="Once new patterns are detected, deduction nudges appear here." />;
-  }
+  if (isLoading) return <LoadingState title="Optimization" description="Generating deduction checklist from your activity..." />;
+  if (!signal || !user) return <EmptyState title="No optimization signals" description="Once new patterns are detected, deduction nudges appear here." />;
 
   return (
-    <div className="space-y-4 animate-rise">
-      <header className="bento-card p-5">
-        <p className="text-xs uppercase tracking-wider text-neon-cyan">Optimization Checklist</p>
-        <h1 className="text-3xl font-black text-white">Turn Activity Into Tax Savings</h1>
-      </header>
-      <OptimizationNudgeCard signal={signal} stateCode={user.state} marginalTaxRate={user.estimatedMarginalTaxRate} />
+    <div className="space-y-6 animate-rise">
+      <div>
+        <p className="text-[11px] font-semibold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(59,130,246,0.8)" }}>
+          Optimization Checklist
+        </p>
+        <h1 className="text-[1.6rem] font-bold text-[#EDEDED] leading-tight">
+          Turn Activity Into Tax Savings
+        </h1>
+      </div>
+      <OptimizationNudgeCard
+        signal={signal}
+        stateCode={user.state}
+        marginalTaxRate={user.estimatedMarginalTaxRate}
+      />
     </div>
   );
 }

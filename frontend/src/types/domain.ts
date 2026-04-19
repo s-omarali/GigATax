@@ -1,4 +1,4 @@
-export type GigType = "Content Creator" | "Video Editor" | "Streamer" | "Photographer" | "Podcaster" | "Freelance Writer" | "OnlyFans Creator";
+export type GigType = "Content Creator" | "Video Editor" | "Streamer" | "Photographer" | "Podcaster" | "Freelance Writer";
 
 export type TransactionCategory =
   | "Income"
@@ -32,8 +32,9 @@ export interface Deduction {
 }
 
 export interface IntegrationConnection {
-  id: "bank" | "email" | "accounting";
+  id: "youtube" | "paypal" | "stripe" | "twitch" | "patreon";
   name: string;
+  description: string;
   connected: boolean;
   lastSyncAt?: string;
 }
