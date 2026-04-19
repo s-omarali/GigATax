@@ -107,29 +107,6 @@ export function DashboardPage() {
     [user?.state]
   );
 
-  const aiFeedTransactions = useMemo<Transaction[]>(() => {
-    if (selectedFeedCategory === "All") {
-      return Object.values(mockTransactionsByCategory)
-        .flat()
-        .sort((a, b) => b.date.localeCompare(a.date));
-    }
-    return mockTransactionsByCategory[selectedFeedCategory] ?? [];
-  }, [selectedFeedCategory]);
-
-  function asTransactionCategory(value: string): TransactionCategory | null {
-    const categories: TransactionCategory[] = [
-      "Income",
-      "Software",
-      "Travel",
-      "Meals",
-      "Vehicle",
-      "Home Office",
-      "Supplies",
-      "Uncategorized",
-    ];
-    return categories.includes(value as TransactionCategory) ? (value as TransactionCategory) : null;
-  }
-
 if (isLoading) {
     return <LoadingState title="Dashboard" description="Running the numbers…" />;
   }
