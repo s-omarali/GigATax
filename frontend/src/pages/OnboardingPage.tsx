@@ -334,16 +334,6 @@ export function OnboardingPage() {
     addFiles(e.dataTransfer.files);
   }
 
-  function validateIncomeStep(): boolean {
-    const n = parseIncomeDollars(annualIncomeInput);
-    if (n === null) {
-      setIncomeFieldError("Enter your estimated annual income in USD (whole dollars, 0 or more).");
-      return false;
-    }
-    setIncomeFieldError("");
-    return true;
-  }
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("from") !== "google") return;

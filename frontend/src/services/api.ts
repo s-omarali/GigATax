@@ -20,7 +20,7 @@ import type {
   PlaidSyncResponse,
   ReceiptScanResponse,
 } from "../types/api";
-import type { FilingRun, IntegrationConnection, UserProfile } from "../types/domain";
+import type { FilingProfile, FilingRun, IntegrationConnection, UserProfile } from "../types/domain";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
@@ -136,8 +136,8 @@ export async function startFilingRun(payload: FilingRunStartPayload): Promise<Fi
   });
 }
 
-export async function getFilingPreparationDefaults() {
-  return apiFetch("/api/v1/filing/preparation/defaults");
+export async function getFilingPreparationDefaults(): Promise<FilingProfile> {
+  return apiFetch<FilingProfile>("/api/v1/filing/preparation/defaults");
 }
 
 export async function approveCurrentFilingStep(run: FilingRun): Promise<FilingRun> {
