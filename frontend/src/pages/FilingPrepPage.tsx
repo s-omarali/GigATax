@@ -1,5 +1,6 @@
 import { ArrowRight, Play, Save, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { EmptyState } from "../components/state/EmptyState";
 import { LoadingState } from "../components/state/LoadingState";
 import { SuccessState } from "../components/state/SuccessState";
 import {
@@ -9,6 +10,10 @@ import {
   saveFilingPreparation,
   startFilingRun,
 } from "../services/api";
+import {
+  getDashboardData as getMockDashboardData,
+  getFilingPreparationDefaults as getMockFilingPreparationDefaults,
+} from "../services/mockApi";
 import type { DashboardResponse } from "../types/api";
 import type { FilingProfile, FilingRun } from "../types/domain";
 import { formatCurrency } from "../utils/taxMath";
@@ -23,23 +28,79 @@ export function FilingPrepPage() {
   const [profile, setProfile] = useState<ExtendedFilingProfile | null>(null);
   const [provider, setProvider] = useState<FilingRun["provider"]>("TurboTax");
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [run, setRun] = useState<FilingRun | null>(null);
 
   useEffect(() => {
     let active = true;
+
+    function normalizeDashboardIncome(review: DashboardResponse): DashboardResponse {
+      if (review.metrics.totalIncome > 0) return review;
+      const incomeFromTransactions = review.transactions
+        .filter((t) => t.type === "income")
+        .reduce((sum, t) => sum + t.amount, 0);
+      if (incomeFromTransactions <= 0) return review;
+      return {
+        ...review,
+        metrics: {
+          ...review.metrics,
+          totalIncome: incomeFromTransactions,
+        },
+      };
+    }
+
+    function hydrate(defaults: FilingProfile, review: DashboardResponse) {
+      if (!active) return;
+      setProfile({ ...defaults, ssn: `***-**-${defaults.ssnLast4}` });
+      setDashboard(normalizeDashboardIncome(review));
+    }
+
     async function load() {
       setIsLoading(true);
-      const [defaults, review] = await Promise.all([
+      setLoadError(null);
+
+      const [defaultsResult, reviewResult] = await Promise.allSettled([
         getFilingPreparationDefaults(),
         getDashboardData(),
       ]);
-      if (!active) return;
-      setProfile({ ...defaults, ssn: `***-**-${defaults.ssnLast4}` });
-      setDashboard(review);
-      setIsLoading(false);
+
+      let defaults: FilingProfile | null = null;
+      let review: DashboardResponse | null = null;
+
+      if (defaultsResult.status === "fulfilled") {
+        defaults = defaultsResult.value;
+      } else {
+        try {
+          defaults = await getMockFilingPreparationDefaults();
+        } catch {
+          defaults = null;
+        }
+      }
+
+      if (reviewResult.status === "fulfilled") {
+        review = reviewResult.value;
+      } else {
+        try {
+          review = await getMockDashboardData();
+        } catch {
+          review = null;
+        }
+      }
+
+      if (defaults && review) {
+        hydrate(defaults, review);
+      } else {
+        setLoadError("Unable to load filing prep data.");
+      }
+
+      {
+        if (!active) return;
+        setIsLoading(false);
+      }
     }
+
     void load();
     return () => { active = false; };
   }, []);
@@ -68,7 +129,16 @@ export function FilingPrepPage() {
     setRun(updated);
   }
 
-  if (isLoading || !profile || !dashboard) return <LoadingState title="Filing prep" description="Crunching…" />;
+  if (isLoading) return <LoadingState title="Filing prep" description="Crunching…" />;
+
+  if (loadError || !profile || !dashboard) {
+    return (
+      <EmptyState
+        title="Filing prep unavailable"
+        description={loadError ?? "We couldn't load filing data right now."}
+      />
+    );
+  }
 
   const inputStyle = "giga-input";
   const labelStyle = "text-[12px] font-medium block mb-1.5";

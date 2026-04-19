@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { useNavigate } from "react-router-dom";
 import { GigaTaxWordmark } from "../components/branding/GigaTaxWordmark";
-import { estimateAnnualIncomeFromGigs, gigOptions } from "../data/mockData";
+import { estimateAnnualIncomeFromGigs, gigOptions, mockIntegrations } from "../data/mockData";
 import {
   createPlaidLinkToken,
   exchangePlaidPublicToken,
@@ -150,6 +150,18 @@ function mockParse(filename: string): { payer: string; income: number } {
   };
 }
 
+function cloneMockIntegrations(): IntegrationConnection[] {
+  return mockIntegrations.map((integration) => ({ ...integration }));
+}
+
+function mergeIntegrationDefaults(defaults: IntegrationConnection[]): IntegrationConnection[] {
+  const byId = new Map(defaults.map((integration) => [integration.id, integration]));
+  return cloneMockIntegrations().map((base) => {
+    const remote = byId.get(base.id);
+    return remote ? { ...base, ...remote, id: base.id } : base;
+  });
+}
+
 export function OnboardingPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -169,7 +181,6 @@ export function OnboardingPage() {
   // Step 3 — gigs
   const [jobSearch, setJobSearch] = useState("");
   const [selectedGigs, setSelectedGigs] = useState<UserProfile["gigs"]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Step 4 — state
   const [residenceState, setResidenceState] = useState("TX");
@@ -181,7 +192,7 @@ export function OnboardingPage() {
   // Step 5 — connect
   const [plaidLinkToken, setPlaidLinkToken] = useState<string | null>(null);
   const [isPlaidConnecting, setIsPlaidConnecting] = useState(false);
-  const [integrations, setIntegrations] = useState<IntegrationConnection[]>([]);
+  const [integrations, setIntegrations] = useState<IntegrationConnection[]>(() => cloneMockIntegrations());
   const [integrationsExpanded, setIntegrationsExpanded] = useState(false);
   const INTEGRATIONS_PREVIEW = 3;
   /** Bumps when user links an integration — drives short falling-money burst (CSS). */
@@ -203,10 +214,14 @@ export function OnboardingPage() {
   useEffect(() => {
     let active = true;
     async function load() {
-      const defaults = await getIntegrationDefaults();
-      if (!active) return;
-      setIntegrations(defaults);
-      setIsLoading(false);
+      try {
+        const defaults = await getIntegrationDefaults();
+        if (!active) return;
+        setIntegrations(mergeIntegrationDefaults(defaults));
+      } catch {
+        if (!active) return;
+        setIntegrations(cloneMockIntegrations());
+      }
     }
     void load();
     return () => { active = false; };
@@ -686,38 +701,32 @@ export function OnboardingPage() {
                 autoFocus
               />
 
-              {isLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="h-5 w-5 animate-spin" style={{ color: "#3B82F6" }} />
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  {filteredGigs.map((gig) => {
-                    const selected = selectedGigs.includes(gig);
-                    return (
-                      <button
-                        key={gig}
-                        onClick={() => toggleGig(gig)}
-                        className="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left text-[13px] font-medium transition-all duration-150 active:scale-[0.97]"
-                        style={
-                          selected
-                            ? { background: "rgba(0,255,133,0.08)", border: "1px solid rgba(0,255,133,0.35)", color: "#00FF85", boxShadow: "0 0 16px rgba(0,255,133,0.06)" }
-                            : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#888888" }
-                        }
+              <div className="grid grid-cols-2 gap-3">
+                {filteredGigs.map((gig) => {
+                  const selected = selectedGigs.includes(gig);
+                  return (
+                    <button
+                      key={gig}
+                      onClick={() => toggleGig(gig)}
+                      className="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-left text-[13px] font-medium transition-all duration-150 active:scale-[0.97]"
+                      style={
+                        selected
+                          ? { background: "rgba(0,255,133,0.08)", border: "1px solid rgba(0,255,133,0.35)", color: "#00FF85", boxShadow: "0 0 16px rgba(0,255,133,0.06)" }
+                          : { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#888888" }
+                      }
+                    >
+                      <span
+                        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
+                        style={{ background: selected ? "rgba(0,255,133,0.15)" : "rgba(255,255,255,0.05)", color: selected ? "#00FF85" : "#555555" }}
                       >
-                        <span
-                          className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg"
-                          style={{ background: selected ? "rgba(0,255,133,0.15)" : "rgba(255,255,255,0.05)", color: selected ? "#00FF85" : "#555555" }}
-                        >
-                          {GIG_ICONS[gig] ?? <Sparkles className="h-4 w-4" />}
-                        </span>
-                        {gig}
-                        {selected && <CheckCircle2 className="ml-auto h-4 w-4 flex-shrink-0" style={{ color: "#00FF85" }} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                        {GIG_ICONS[gig] ?? <Sparkles className="h-4 w-4" />}
+                      </span>
+                      {gig}
+                      {selected && <CheckCircle2 className="ml-auto h-4 w-4 flex-shrink-0" style={{ color: "#00FF85" }} />}
+                    </button>
+                  );
+                })}
+              </div>
 
               <div className="space-y-3">
                 {selectedGigs.length > 0 && (
