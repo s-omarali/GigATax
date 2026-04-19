@@ -1,20 +1,21 @@
 import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { HomeOfficeNudgeCard } from "../components/optimization/HomeOfficeNudgeCard";
+import { MealsReviewNudgeCard } from "../components/optimization/MealsReviewNudgeCard";
 import { OptimizationNudgeCard } from "../components/optimization/OptimizationNudgeCard";
 import { EmptyState } from "../components/state/EmptyState";
 import { LoadingState } from "../components/state/LoadingState";
 import { useOptimizationReview } from "../context/OptimizationReviewContext";
 import { getCurrentUser, getDashboardData } from "../services/mockApi";
 import type { DashboardResponse } from "../types/api";
-import type { UserProfile } from "../types/domain";
+import type { MealReviewItem, UserProfile } from "../types/domain";
 import {
   incompleteOptimizationSignals,
   mergeOptimizationCompletion,
 } from "../utils/optimizationSignals";
 
 export function OptimizationPage() {
-  const { completedIds, completeSignal } = useOptimizationReview();
+  const { completedIds, dismissedIds, completeSignal, dismissSignal } = useOptimizationReview();
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,9 +37,9 @@ export function OptimizationPage() {
   const mergedSignals = useMemo(
     () =>
       dashboard
-        ? mergeOptimizationCompletion(dashboard.optimizationSignals, completedIds)
+        ? mergeOptimizationCompletion(dashboard.optimizationSignals, completedIds, dismissedIds)
         : [],
-    [dashboard, completedIds]
+    [dashboard, completedIds, dismissedIds]
   );
 
   const toReview = useMemo(
@@ -47,9 +48,36 @@ export function OptimizationPage() {
   );
 
   const completedSignals = useMemo(
-    () => mergedSignals.filter((s) => s.completed),
+    () => mergedSignals.filter((s) => s.completed && !s.dismissed),
     [mergedSignals]
   );
+
+  function handleMealsReviewComplete(signalId: string, rows: MealReviewItem[]) {
+    setDashboard((prev) => {
+      if (!prev) return prev;
+
+      const notesByTxnId = new Map(
+        rows.map((row) => [
+          row.transactionId,
+          `Meal substantiation: purpose=${row.businessPurpose ?? ""}; attendees=${row.attendees ?? ""}`,
+        ])
+      );
+
+      return {
+        ...prev,
+        transactions: prev.transactions.map((tx) =>
+          notesByTxnId.has(tx.id)
+            ? { ...tx, notes: notesByTxnId.get(tx.id) }
+            : tx
+        ),
+        optimizationSignals: prev.optimizationSignals.map((signal) =>
+          signal.id === signalId ? { ...signal, completed: true } : signal
+        ),
+      };
+    });
+
+    completeSignal(signalId);
+  }
 
   if (isLoading) return <LoadingState title="Optimization" description="Loading opportunities…" />;
   if (!dashboard || !user) {
@@ -99,24 +127,41 @@ export function OptimizationPage() {
         </div>
       )}
 
-      {toReview.map((sig) =>
-        sig.type === "vehicle_mileage" ? (
-          <OptimizationNudgeCard
+      {toReview.map((sig) => {
+        if (sig.type === "vehicle_mileage") {
+          return (
+            <OptimizationNudgeCard
+              key={sig.id}
+              signal={sig}
+              stateCode={user.state}
+              marginalTaxRate={user.estimatedMarginalTaxRate}
+              onReviewComplete={() => completeSignal(sig.id)}
+              onDismiss={() => dismissSignal(sig.id)}
+            />
+          );
+        }
+
+        if (sig.type === "home_office") {
+          return (
+            <HomeOfficeNudgeCard
+              key={sig.id}
+              signal={sig}
+              marginalTaxRate={user.estimatedMarginalTaxRate}
+              onReviewComplete={() => completeSignal(sig.id)}
+              onDismiss={() => dismissSignal(sig.id)}
+            />
+          );
+        }
+
+        return (
+          <MealsReviewNudgeCard
             key={sig.id}
             signal={sig}
-            stateCode={user.state}
-            marginalTaxRate={user.estimatedMarginalTaxRate}
-            onReviewComplete={() => completeSignal(sig.id)}
+            onReviewComplete={(rows) => handleMealsReviewComplete(sig.id, rows)}
+            onDismiss={() => dismissSignal(sig.id)}
           />
-        ) : (
-          <HomeOfficeNudgeCard
-            key={sig.id}
-            signal={sig}
-            marginalTaxRate={user.estimatedMarginalTaxRate}
-            onReviewComplete={() => completeSignal(sig.id)}
-          />
-        )
-      )}
+        );
+      })}
 
       {completedSignals.length > 0 && (
         <details
