@@ -32,7 +32,11 @@ def main() -> int:
         str(port),
     ]
 
-    return subprocess.call(cmd)
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = f"{REPO_ROOT}{os.pathsep}{existing_pythonpath}" if existing_pythonpath else str(REPO_ROOT)
+
+    return subprocess.call(cmd, cwd=str(REPO_ROOT), env=env)
 
 
 if __name__ == "__main__":

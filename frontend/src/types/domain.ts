@@ -32,7 +32,7 @@ export interface Deduction {
 }
 
 export interface IntegrationConnection {
-  id: "youtube" | "paypal" | "stripe" | "twitch" | "patreon";
+  id: "bank" | "youtube" | "paypal" | "stripe" | "twitch" | "patreon";
   name: string;
   description: string;
   connected: boolean;

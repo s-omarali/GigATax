@@ -12,25 +12,35 @@ import { MetricCard } from "../components/dashboard/MetricCard";
 import { OptimizationNudgeCard } from "../components/optimization/OptimizationNudgeCard";
 import { EmptyState } from "../components/state/EmptyState";
 import { LoadingState } from "../components/state/LoadingState";
+import { mockTransactionsByCategory } from "../data/mockData";
 import { getCurrentUser, getDashboardData } from "../services/mockApi";
 import type { DashboardResponse } from "../types/api";
-import type { UserProfile } from "../types/domain";
+import type { Transaction, TransactionCategory, UserProfile } from "../types/domain";
 import { formatCurrency } from "../utils/taxMath";
 
 export function DashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedFeedCategory, setSelectedFeedCategory] = useState<"All" | TransactionCategory>("All");
 
   useEffect(() => {
     let alive = true;
 
     async function load() {
       setIsLoading(true);
-      const [dash, profile] = await Promise.all([getDashboardData(), getCurrentUser()]);
+      setLoadError(null);
+      try {
+        const [dash, profile] = await Promise.all([getDashboardData(), getCurrentUser()]);
+        if (!alive) return;
+        setDashboard(dash);
+        setUser(profile);
+      } catch (error) {
+        if (!alive) return;
+        setLoadError(error instanceof Error ? error.message : "Unable to load dashboard data.");
+      }
       if (!alive) return;
-      setDashboard(dash);
-      setUser(profile);
       setIsLoading(false);
     }
 
@@ -43,8 +53,35 @@ export function DashboardPage() {
     [dashboard?.deductions]
   );
 
+  const aiFeedTransactions = useMemo<Transaction[]>(() => {
+    if (selectedFeedCategory === "All") {
+      return Object.values(mockTransactionsByCategory)
+        .flat()
+        .sort((a, b) => b.date.localeCompare(a.date));
+    }
+    return mockTransactionsByCategory[selectedFeedCategory] ?? [];
+  }, [selectedFeedCategory]);
+
+  function asTransactionCategory(value: string): TransactionCategory | null {
+    const categories: TransactionCategory[] = [
+      "Income",
+      "Software",
+      "Travel",
+      "Meals",
+      "Vehicle",
+      "Home Office",
+      "Supplies",
+      "Uncategorized",
+    ];
+    return categories.includes(value as TransactionCategory) ? (value as TransactionCategory) : null;
+  }
+
   if (isLoading) {
     return <LoadingState title="Dashboard" description="AI is analyzing your transactions and deduction opportunities..." />;
+  }
+
+  if (loadError) {
+    return <EmptyState title="Dashboard data unavailable" description={loadError} />;
   }
 
   if (!dashboard || dashboard.transactions.length === 0) {
@@ -165,7 +202,11 @@ export function DashboardPage() {
       {/* ── Bento grid: AI Feed + right-rail ───────────────────────── */}
       <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         {/* AI Activity Feed — left, dominant */}
-        <CategorizationFeed transactions={dashboard.transactions} />
+        <CategorizationFeed
+          transactions={aiFeedTransactions}
+          selectedCategory={selectedFeedCategory}
+          onSelectCategory={setSelectedFeedCategory}
+        />
 
         {/* Right rail */}
         <div className="space-y-6">
@@ -186,10 +227,16 @@ export function DashboardPage() {
               {dashboard.deductions.map((ded) => (
                 <div
                   key={ded.id}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5"
+                  className="flex items-center justify-between rounded-xl px-3 py-2.5 cursor-pointer"
                   style={{
                     background: "rgba(255,255,255,0.025)",
                     border: "1px solid rgba(255,255,255,0.05)",
+                  }}
+                  onClick={() => {
+                    const txCategory = asTransactionCategory(ded.category);
+                    if (txCategory) {
+                      setSelectedFeedCategory(txCategory);
+                    }
                   }}
                 >
                   <div className="min-w-0">

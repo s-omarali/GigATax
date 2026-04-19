@@ -40,7 +40,7 @@ def check_database_connectivity() -> None:
     if not url or not key:
         raise RuntimeError(
             "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env. "
-            "Create a Supabase project and copy the credentials into your root .env file."
+            "Create a Supabase project and copy the credentials into backend/.env."
         )
 
     try:
