@@ -13,13 +13,14 @@ import { LoadingState } from "../components/state/LoadingState";
 import { useOptimizationReview } from "../context/OptimizationReviewContext";
 import { getCurrentUser, getDashboardData } from "../services/mockApi";
 import type { DashboardResponse } from "../types/api";
-import type { UserProfile } from "../types/domain";
+import type { Transaction, TransactionCategory, UserProfile } from "../types/domain";
 import {
   countIncompleteOptimizationSignals,
   estimatePendingOptimizationTaxSavingsUpperBound,
   incompleteOptimizationSignals,
   mergeOptimizationCompletion,
 } from "../utils/optimizationSignals";
+import { mockTransactionsByCategory } from "../data/mockData";
 import { getStateTaxContext } from "../utils/stateTaxContext";
 import { formatCurrency } from "../utils/taxMath";
 

@@ -188,6 +188,8 @@ export function OnboardingPage() {
   }, [step]);
 
   // Step 5 — connect
+  const [plaidLinkToken, setPlaidLinkToken] = useState<string | null>(null);
+  const [isPlaidConnecting, setIsPlaidConnecting] = useState(false);
   const [integrations, setIntegrations] = useState<IntegrationConnection[]>([]);
   const [integrationsExpanded, setIntegrationsExpanded] = useState(false);
   const INTEGRATIONS_PREVIEW = 3;

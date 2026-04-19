@@ -51,6 +51,12 @@ export function CategorizationFeed({
 }: CategorizationFeedProps) {
   const [menu, setMenu] = useState<TxnMenuState | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [selectedCategory, setSelectedCategory] = useState<TransactionCategory | "All">("All");
+  const categories: Array<TransactionCategory | "All"> = ["All", ...ALL_CATEGORIES];
+
+  function onSelectCategory(cat: TransactionCategory | "All") {
+    setSelectedCategory(cat);
+  }
 
   // Close menu on outside click
   useEffect(() => {
