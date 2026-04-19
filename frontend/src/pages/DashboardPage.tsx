@@ -13,14 +13,13 @@ import { LoadingState } from "../components/state/LoadingState";
 import { useOptimizationReview } from "../context/OptimizationReviewContext";
 import { getCurrentUser, getDashboardData } from "../services/api";
 import type { DashboardResponse } from "../types/api";
-import type { Transaction, TransactionCategory, UserProfile } from "../types/domain";
+import type { UserProfile } from "../types/domain";
 import {
   countIncompleteOptimizationSignals,
   estimatePendingOptimizationTaxSavingsUpperBound,
   incompleteOptimizationSignals,
   mergeOptimizationCompletion,
 } from "../utils/optimizationSignals";
-import { mockTransactionsByCategory } from "../data/mockData";
 import { getStateTaxContext } from "../utils/stateTaxContext";
 import { formatCurrency } from "../utils/taxMath";
 
@@ -30,7 +29,6 @@ export function DashboardPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [selectedFeedCategory, setSelectedFeedCategory] = useState<"All" | TransactionCategory>("All");
 
   const mergedOptimizationSignals = useMemo(
     () => mergeOptimizationCompletion(dashboard?.optimizationSignals ?? [], completedIds),

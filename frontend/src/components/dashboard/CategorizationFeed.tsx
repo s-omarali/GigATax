@@ -17,6 +17,7 @@ const ALL_CATEGORIES: TransactionCategory[] = [
   "Vehicle",
   "Home Office",
   "Supplies",
+  "Personal",
   "Uncategorized",
 ];
 
@@ -27,6 +28,7 @@ const CATEGORY_COLORS: Record<string, { text: string; bg: string }> = {
   Vehicle:       { text: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
   Meals:         { text: "#F59E0B", bg: "rgba(245,158,11,0.08)" },
   Supplies:      { text: "#888888", bg: "rgba(255,255,255,0.05)" },
+  Personal:      { text: "#EF4444", bg: "rgba(239,68,68,0.12)" },
   "Home Office": { text: "#3B82F6", bg: "rgba(59,130,246,0.08)" },
   Uncategorized: { text: "#555555", bg: "rgba(255,255,255,0.04)" },
 };
