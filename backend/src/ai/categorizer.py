@@ -5,7 +5,10 @@ import json
 import os
 from pathlib import Path
 
-import anthropic
+try:
+    import anthropic
+except ImportError:
+    anthropic = None
 
 
 def _load_env() -> None:
@@ -22,7 +25,15 @@ def _load_env() -> None:
 
 
 _load_env()
-_client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+
+def _get_client():
+    if anthropic is None:
+        raise RuntimeError("Anthropic SDK is not installed. Add 'anthropic' to requirements.")
+    api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+    if not api_key:
+        raise RuntimeError("ANTHROPIC_API_KEY is not set.")
+    return anthropic.Anthropic(api_key=api_key)
 
 def extract_receipt(file_bytes: bytes, media_type: str) -> dict:
     """Use Claude vision to extract merchant, amount, and date from a receipt image or PDF."""
@@ -54,7 +65,8 @@ def extract_receipt(file_bytes: bytes, media_type: str) -> dict:
             ],
         }],
     )
-    response = _client.messages.create(**create_kwargs)
+    client = _get_client()
+    response = client.messages.create(**create_kwargs)
     text = response.content[0].text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
     data = json.loads(text)
     return {
@@ -115,7 +127,8 @@ Example for a needs review item:
 Example for income:
 {{"category": "Income", "confidence_score": 0.99, "type": "income", "deductible": false, "needs_review": false, "review_reason": null, "tax_impact": 1257.60, "reason": "YouTube platform payout — adds $1,257.60 to your estimated federal tax due at your 39.3% combined rate."}}"""
 
-    response = _client.messages.create(
+    client = _get_client()
+    response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=512,
         messages=[{"role": "user", "content": prompt}],
@@ -192,7 +205,8 @@ Example for a standing deduction:
 Example for a directly claimable deduction:
 [{{"title": "QBI Deduction (Section 199A)", "category": "Uncategorized", "potential_savings": 4084.00, "tax_savings": 4084.00, "detail": "As a self-employed gig worker you may qualify for a 20% deduction on qualified business income under Section 199A — this reduces your taxable income directly with no additional input required.", "review_required": false, "review_reason": null, "status": "AVAILABLE"}}]"""
 
-    response = _client.messages.create(
+    client = _get_client()
+    response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}],
