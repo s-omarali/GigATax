@@ -1,12 +1,12 @@
 import {
   avgGasPriceByState2025,
+  getMockOptimizationSignals,
   getMockTransactionsForGigs,
   mockDeductions,
   mockFilingProfile,
   mockFilingRun,
   mockIntegrations,
   mockMetrics,
-  mockOptimizationSignals,
   mockUser,
 } from "../data/mockData";
 import type {
@@ -157,7 +157,7 @@ export async function getDashboardData(): Promise<DashboardResponse> {
       metrics: buildDashboardMetrics(currentMockProfile, gigTransactions),
       transactions: gigTransactions,
       deductions: mockDeductions,
-      optimizationSignals: mockOptimizationSignals,
+      optimizationSignals: getMockOptimizationSignals(gigTransactions),
     },
     850
   );

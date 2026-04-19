@@ -65,6 +65,8 @@ export interface VehicleMileageOptimizationSignal {
   type: "vehicle_mileage";
   /** When true, hidden from Optimization (demo only — no persistence). */
   completed?: boolean;
+  /** User intentionally dismissed this optimization. */
+  dismissed?: boolean;
   label: string;
   gasSpend: number;
   detectedPeriodLabel: string;
@@ -75,6 +77,7 @@ export interface HomeOfficeOptimizationSignal {
   id: string;
   type: "home_office";
   completed?: boolean;
+  dismissed?: boolean;
   label: string;
   workspaceSqFt: number;
   suggestedBusinessUsePercent: number;
@@ -82,9 +85,29 @@ export interface HomeOfficeOptimizationSignal {
   potentialSavingsHint: number;
 }
 
+export interface MealReviewItem {
+  transactionId: string;
+  date: string;
+  merchant: string;
+  amount: number;
+  businessPurpose?: string;
+  attendees?: string;
+}
+
+export interface MealReviewOptimizationSignal {
+  id: string;
+  type: "meal_review";
+  completed?: boolean;
+  dismissed?: boolean;
+  label: string;
+  threshold: number;
+  meals: MealReviewItem[];
+}
+
 export type OptimizationSignal =
   | VehicleMileageOptimizationSignal
-  | HomeOfficeOptimizationSignal;
+  | HomeOfficeOptimizationSignal
+  | MealReviewOptimizationSignal;
 
 export interface FilingProfile {
   legalName: string;

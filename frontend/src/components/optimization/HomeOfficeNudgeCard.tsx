@@ -7,6 +7,7 @@ interface HomeOfficeNudgeCardProps {
   signal: HomeOfficeOptimizationSignal;
   marginalTaxRate: number;
   onReviewComplete?: () => void;
+  onDismiss?: () => void;
 }
 
 /** Demo-only simplified home office deduction: $5/sqft × business-use share, capped at $1,500 (IRS simplified style). */
@@ -17,7 +18,7 @@ function estimateSimplifiedDeduction(sqFt: number, businessUsePercent: number): 
   return Math.min(1500, raw);
 }
 
-export function HomeOfficeNudgeCard({ signal, marginalTaxRate, onReviewComplete }: HomeOfficeNudgeCardProps) {
+export function HomeOfficeNudgeCard({ signal, marginalTaxRate, onReviewComplete, onDismiss }: HomeOfficeNudgeCardProps) {
   const [squareFeet, setSquareFeet] = useState(signal.workspaceSqFt);
   const [businessUsePercent, setBusinessUsePercent] = useState(signal.suggestedBusinessUsePercent);
 
@@ -142,19 +143,33 @@ export function HomeOfficeNudgeCard({ signal, marginalTaxRate, onReviewComplete 
 
       {onReviewComplete ? (
         <div className="mt-6 border-t border-white/[0.06] pt-6">
-          <button
-            type="button"
-            onClick={onReviewComplete}
-            className="w-full rounded-xl px-4 py-3 text-[13px] font-extrabold transition-all duration-150 active:scale-[0.99]"
-            style={{
-              background: "rgba(0,255,133,0.12)",
-              border: "1px solid rgba(0,255,133,0.35)",
-              color: "#00FF85",
-              boxShadow: "0 0 22px rgba(0,255,133,0.12)",
-            }}
-          >
-            Confirm and complete review
-          </button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onReviewComplete}
+              className="w-full rounded-xl px-4 py-3 text-[13px] font-extrabold transition-all duration-150 active:scale-[0.99]"
+              style={{
+                background: "rgba(0,255,133,0.12)",
+                border: "1px solid rgba(0,255,133,0.35)",
+                color: "#00FF85",
+                boxShadow: "0 0 22px rgba(0,255,133,0.12)",
+              }}
+            >
+              Confirm and complete review
+            </button>
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="w-full rounded-xl px-4 py-3 text-[13px] font-extrabold transition-all duration-150 active:scale-[0.99]"
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                color: "#AAAAAA",
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       ) : null}
     </section>

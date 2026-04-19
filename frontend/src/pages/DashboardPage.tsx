@@ -24,15 +24,15 @@ import { getStateTaxContext } from "../utils/stateTaxContext";
 import { formatCurrency } from "../utils/taxMath";
 
 export function DashboardPage() {
-  const { completedIds } = useOptimizationReview();
+  const { completedIds, dismissedIds } = useOptimizationReview();
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const mergedOptimizationSignals = useMemo(
-    () => mergeOptimizationCompletion(dashboard?.optimizationSignals ?? [], completedIds),
-    [dashboard?.optimizationSignals, completedIds]
+    () => mergeOptimizationCompletion(dashboard?.optimizationSignals ?? [], completedIds, dismissedIds),
+    [dashboard?.optimizationSignals, completedIds, dismissedIds]
   );
 
   function handleUpdateTransaction(id: string, patch: Partial<import("../types/domain").Transaction>) {
