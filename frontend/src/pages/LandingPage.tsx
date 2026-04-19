@@ -1,346 +1,327 @@
-import {
-  ArrowRight,
-  Gamepad2,
-  Link2,
-  Palette,
-  Sparkles,
-  UploadCloud,
-} from "lucide-react";
-import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { GigaTaxWordmark } from "../components/branding/GigaTaxWordmark";
-import { formatCurrency, getEstimatedTaxSavings } from "../utils/taxMath";
 
 const TAX_YEAR = 2026;
 
-/** Demo marginal rate for the hero nudge only — same order of magnitude as elsewhere in the app. */
-const HERO_DEMO_MARGINAL = 0.24;
+const TICKER_ITEMS = [
+  "Deduct your ring light",
+  "Multi-platform income",
+  "Brand deal tracking",
+  "Write off your streaming chair",
+  "Merch sales handled",
+  "Freelance & 1099 forms",
+] as const;
 
-const ICON_MUTED = "rgba(0, 255, 133, 0.85)";
+/** Bento panel: crisp border, subtle glass — no offset “brutal” shadow stack. */
+function bentoPanelClass(extra = "") {
+  return `border border-white/[0.06] ring-1 ring-white/[0.08] bg-white/[0.02] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_30px_rgba(0,0,0,0.28)] transition-all duration-200 hover:border-white/[0.12] hover:ring-white/[0.14] hover:bg-white/[0.03] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_16px_34px_rgba(0,0,0,0.34)] ${extra}`.trim();
+}
 
-/** Hero slider — same bento glass language as the rest of marketing. */
-function HeroSavingsNudge() {
-  const [studioExpense, setStudioExpense] = useState(4200);
-  const savings = useMemo(
-    () => getEstimatedTaxSavings(studioExpense, HERO_DEMO_MARGINAL),
-    [studioExpense]
-  );
-
-  return (
-    <aside className="bento-card text-left" aria-labelledby="hero-nudge-title">
-      <div className="flex gap-4">
-        <div
-          className="w-1 shrink-0 self-stretch min-h-[8rem] rounded-full"
-          style={{
-            background: "linear-gradient(180deg, #00FF85 0%, rgba(0,255,133,0.18) 72%, rgba(0,255,133,0.06) 100%)",
-          }}
-          aria-hidden
-        />
-        <div className="min-w-0 flex-1">
-          <p id="hero-nudge-title" className="text-[13px] font-semibold text-[#EDEDED]">
-            Studio &amp; gear spend (demo)
-          </p>
-          <p className="text-[13px] mt-1.5 leading-relaxed font-normal" style={{ color: "#888888" }}>
-            Move the slider. Rough federal savings illustration—not a filing number.
-          </p>
-
-          <div className="mt-6 space-y-4">
-            <div className="flex items-baseline justify-between gap-3">
-              <span className="mn text-[22px] font-semibold tabular-nums" style={{ color: "#EDEDED" }}>
-                {formatCurrency(studioExpense)}
-              </span>
-              <span className="text-[12px] font-normal" style={{ color: "#666666" }}>
-                per year
-              </span>
-            </div>
-            <label className="block">
-              <span className="sr-only">Adjust average studio and gear expenses</span>
-              <input
-                type="range"
-                min={0}
-                max={24000}
-                step={200}
-                value={studioExpense}
-                onChange={(e) => setStudioExpense(Number(e.target.value))}
-                className="w-full h-2 rounded-full cursor-grab active:cursor-grabbing accent-[#00FF85]"
-                aria-valuemin={0}
-                aria-valuemax={24000}
-                aria-valuenow={studioExpense}
-              />
-            </label>
-
-            <div className="pt-2 border-t border-white/[0.06]">
-              <p className="text-[12px] font-medium" style={{ color: "#888888" }}>
-                Estimated savings (illustrative)
-              </p>
-              <p className="mn text-[1.65rem] font-semibold mt-1 leading-none" style={{ color: "#00FF85" }}>
-                {formatCurrency(savings)}
-              </p>
-              <p className="text-[11px] mt-2 leading-snug font-normal" style={{ color: "#555555" }}>
-                Uses a flat {Math.round(HERO_DEMO_MARGINAL * 100)}% demo rate—not tax advice.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </aside>
-  );
+function scrollToId(hash: string) {
+  const id = hash.replace(/^#/, "");
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 export function LandingPage() {
   return (
-    <div
-      className="min-h-screen flex flex-col relative"
-      style={{
-        background: "linear-gradient(165deg, #070708 0%, #0a0a0f 38%, #08080d 100%)",
-        color: "#EDEDED",
-      }}
-    >
-      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden="true">
+    <div className="min-h-screen scroll-smooth text-fg overflow-x-hidden bg-[#0a0a0a]">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden>
         <div
-          className="landing-orb landing-orb--a absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full blur-[180px]"
-          style={{ background: "rgba(0,255,133,0.055)" }}
+          className="landing-orb landing-orb--a absolute -top-44 left-1/2 -translate-x-1/2 w-[840px] h-[620px] rounded-full blur-3xl opacity-20"
+          style={{ background: "radial-gradient(circle at center, rgba(0,255,133,0.2) 0%, rgba(0,255,133,0.04) 42%, rgba(0,255,133,0) 74%)" }}
         />
         <div
-          className="landing-orb landing-orb--b absolute bottom-0 right-0 w-[600px] h-[500px] rounded-full blur-[160px]"
-          style={{ background: "rgba(59,130,246,0.055)" }}
-        />
-        <div
-          className="landing-orb landing-orb--c absolute top-1/2 left-0 w-[400px] h-[400px] -translate-y-1/2 rounded-full blur-[140px] opacity-60"
-          style={{ background: "rgba(168,85,247,0.035)" }}
+          className="landing-orb landing-orb--b absolute -bottom-10 right-[-5%] w-[680px] h-[560px] rounded-full blur-3xl opacity-15"
+          style={{ background: "radial-gradient(circle at center, rgba(59,130,246,0.22) 0%, rgba(59,130,246,0.05) 46%, rgba(59,130,246,0) 76%)" }}
         />
       </div>
       <div className="landing-vignette" aria-hidden />
       <div className="landing-grain" aria-hidden />
 
       <header
-        className="relative z-20 flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-8 lg:px-10 border-b border-white/[0.06] backdrop-blur-xl"
-        style={{
-          background: "linear-gradient(180deg, rgba(10,10,15,0.88) 0%, rgba(10,10,15,0.72) 100%)",
-          boxShadow: "inset 0 -1px 0 rgba(255,255,255,0.04)",
-        }}
+        className="fixed top-0 left-0 right-0 z-[100] flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8 lg:px-10 border-b border-white/[0.06] ring-1 ring-white/[0.05] backdrop-blur-xl bg-[#0a0a0a]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
       >
         <Link
           to="/"
-          className="flex items-center min-w-0 rounded-lg focus-visible:outline-offset-4"
+          className="flex items-center min-w-0 rounded-lg focus-visible:outline-offset-4 shrink-0"
+          aria-label="GigATax home"
         >
-          <div className="min-w-0 text-left">
-            <GigaTaxWordmark size="xl" className="block leading-none" />
-            <span className="block text-[11px] font-normal leading-snug truncate" style={{ color: "#888888" }}>
-              Tax workspace for 1099 creators
-            </span>
-          </div>
+          <GigaTaxWordmark size="lg" className="leading-none" />
         </Link>
 
-        <nav className="flex items-center gap-2" aria-label="Primary">
+        <nav className="flex flex-wrap items-center justify-end gap-x-6 gap-y-2 text-[13px] font-sans text-fg-muted" aria-label="Marketing">
+          <a
+            href="#pricing"
+            className="hover:text-fg transition-colors duration-200"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToId("pricing");
+            }}
+          >
+            Pricing
+          </a>
           <Link
             to="/start"
-            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-[13px] font-semibold transition-all duration-150 whitespace-nowrap focus-visible:outline-offset-2 border border-white/[0.12] bg-white/[0.04] text-[#EDEDED] hover:bg-white/[0.07] hover:border-white/[0.16] active:scale-[0.98]"
+            className="inline-flex items-center justify-center rounded-lg px-[18px] py-2 text-[14px] font-semibold font-sans tracking-normal bg-green text-[#04140e] transition-all duration-200 hover:opacity-95 hover:shadow-[0_0_0_1px_rgba(0,255,133,0.45),0_8px_28px_rgba(0,255,133,0.22)] active:scale-[0.99]"
           >
-            Get started
+            Start for free
           </Link>
         </nav>
       </header>
 
-      <main className="relative z-10 flex-1 w-full">
+      <main className="relative z-10 pt-[72px] sm:pt-[80px]">
+        {/* Hero — no status pill, no arcade duplicate; breathing room above headline */}
         <section
-          className="px-5 sm:px-8 lg:px-10 pt-14 pb-16 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24 max-w-6xl mx-auto animate-rise"
-          aria-labelledby="landing-hero-heading"
+          className="relative isolate px-5 sm:px-8 lg:px-10 pt-20 sm:pt-24 pb-14 max-w-[1100px] mx-auto overflow-hidden"
+          aria-labelledby="landing-hero-title"
         >
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-14 xl:gap-16 items-start">
-            <div className="lg:col-span-6 xl:col-span-7 flex flex-col justify-center text-center lg:text-left order-2 lg:order-1">
-              <p className="text-[12px] font-semibold mb-3 tracking-[0.12em] uppercase font-display" style={{ color: "rgba(0,255,133,0.78)" }}>
-                Tax year {TAX_YEAR}
-              </p>
-              <h1
-                id="landing-hero-heading"
-                className="font-display text-[1.8rem] sm:text-[2.2rem] xl:text-[2.45rem] font-bold leading-[1.08] tracking-[-0.02em] text-[#EDEDED]"
-              >
-                Keep more of what you earn on 1099s—with less tax-season dread.
-              </h1>
-              <p className="mt-5 text-[15px] sm:text-[16px] leading-relaxed max-w-xl mx-auto lg:mx-0 lg:max-w-none font-normal" style={{ color: "#a3a3a3" }}>
-                Link payouts and upload 1099s—we surface write-offs and estimates in one dark workspace built for multi-payer income.
-              </p>
+          <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
+            <div
+              className="absolute -top-24 left-[12%] h-[360px] w-[360px] rounded-full blur-3xl opacity-20"
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(0,255,133,0.28) 0%, rgba(0,255,133,0.07) 48%, rgba(0,255,133,0) 76%)",
+              }}
+            />
+            <div
+              className="absolute top-10 right-[6%] h-[320px] w-[320px] rounded-full blur-3xl opacity-15"
+              style={{
+                background:
+                  "radial-gradient(circle, rgba(59,130,246,0.24) 0%, rgba(59,130,246,0.06) 46%, rgba(59,130,246,0) 74%)",
+              }}
+            />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_45%_18%,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.02)_34%,rgba(0,0,0,0)_70%)]" />
+          </div>
 
-              <div className="mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 sm:gap-4">
-                <Link
-                  to="/start"
-                  className="giga-cta-shimmer inline-flex items-center justify-center gap-2 rounded-2xl px-7 py-4 text-[15px] font-semibold transition-all duration-150 active:scale-[0.98] focus-visible:outline-offset-4"
-                  style={{
-                    background: "linear-gradient(165deg, #12E88C 0%, #00C96F 42%, #00A35C 100%)",
-                    color: "#04140e",
-                    boxShadow:
-                      "0 0 0 1px rgba(0,255,133,0.35), 0 0 48px rgba(0,255,133,0.18), 0 14px 32px rgba(0,0,0,0.55)",
-                  }}
-                >
-                  Get my tax HUD
-                  <ArrowRight className="h-5 w-5" aria-hidden />
-                </Link>
-                <a
-                  href="#how-it-works"
-                  className="inline-flex items-center justify-center rounded-2xl px-5 py-3.5 text-[14px] font-medium text-[#EDEDED] border border-white/[0.1] bg-white/[0.03] hover:bg-white/[0.06] transition-colors focus-visible:outline-offset-4 backdrop-blur-sm"
-                  style={{ boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)" }}
-                >
-                  How it works
-                </a>
+          <h1
+            id="landing-hero-title"
+            className="font-display font-extrabold text-[clamp(2.5rem,7vw,5.25rem)] leading-[1.02] tracking-[-0.06em] mb-6 text-balance max-w-[18ch] sm:max-w-none bg-gradient-to-b from-white via-white/95 to-white/65 bg-clip-text text-transparent [text-shadow:0_1px_0_rgba(255,255,255,0.05)]"
+          >
+            Taxes for
+            <br />
+            people who
+            <br />
+            <span className="text-green [text-shadow:0_0_24px_rgba(0,255,133,0.22)]">hustle weird.</span>
+          </h1>
+
+          <p className="font-sans text-[clamp(0.875rem,1.5vw,1rem)] uppercase tracking-[0.12em] mb-10 text-fg-muted max-w-md">
+            // <span className="text-green font-medium">more money, less problems</span>
+          </p>
+
+          <p className="font-sans text-[17px] sm:text-[18px] max-w-[42rem] mb-12 leading-relaxed text-fg-muted">
+            Stop leaving money on the table. We automatically handle your expenses so you can get back to creating
+          </p>
+
+          <div className="flex flex-wrap gap-4 items-center">
+            <Link
+              to="/start"
+              className="inline-flex items-center justify-center rounded-lg px-8 py-3.5 text-[16px] font-semibold font-sans bg-green text-[#04140e] transition-all duration-200 hover:opacity-95 hover:shadow-[0_0_0_1px_rgba(0,255,133,0.45),0_10px_30px_rgba(0,255,133,0.24)] active:scale-[0.99]"
+            >
+              Get your money back →
+            </Link>
+          </div>
+
+          <p className="font-mono text-[11px] mt-8 tracking-wide text-fg-faint max-w-md">
+            // No CPA required. No spreadsheets. No crying.
+          </p>
+
+        </section>
+
+        {/* Single full-bleed marquee — neon #00FF85 only */}
+        <div
+          className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 border-y border-white/[0.05] bg-[#050505] py-3.5 overflow-x-hidden"
+          aria-hidden
+        >
+          <div className="flex w-max animate-landing-marquee" style={{ animationDuration: "22s" }}>
+            {[0, 1].map((dup) => (
+              <div key={dup} className="flex shrink-0 gap-14 sm:gap-16 pr-14 sm:pr-16">
+                {TICKER_ITEMS.map((label) => (
+                  <span
+                    key={`${dup}-${label}`}
+                    className="inline-flex items-center gap-2 font-sans text-[12px] sm:text-[13px] uppercase tracking-[0.1em] whitespace-nowrap text-[#00FF85]"
+                  >
+                    <span className="text-[#00FF85]" aria-hidden>
+                      ✓
+                    </span>
+                    {label}
+                  </span>
+                ))}
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
 
-            <div className="lg:col-span-6 xl:col-span-5 order-1 lg:order-2 w-full">
-              <HeroSavingsNudge />
+        {/* Problem */}
+        <section id="situation" className="px-5 sm:px-8 lg:px-10 py-20 sm:py-24 max-w-[1100px] mx-auto scroll-mt-28">
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-green mb-4">// The situation</p>
+          <h2 className="font-display font-extrabold text-[clamp(2rem,5vw,3.25rem)] tracking-[-0.04em] leading-tight text-fg mb-6 text-balance max-w-[20ch] sm:max-w-[28ch]">
+            The IRS wasn&apos;t built
+            <br />
+            for your <em className="text-green not-italic">vibe.</em>
+          </h2>
+          <p className="font-sans text-[17px] max-w-[40rem] mb-14 leading-relaxed text-fg-muted">
+            Tax software was designed in 1987 for people with one employer and zero brand deals. You are not that person.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className={`p-8 sm:p-9 rounded-xl ${bentoPanelClass()}`}>
+              <span className="inline-block font-mono text-[10px] px-2 py-1 rounded border border-white/[0.06] mb-4 tracking-wide bg-red-dim text-red">
+                BEFORE GIGATAX
+              </span>
+              <span className="text-[26px] block mb-4" aria-hidden>
+                😵
+              </span>
+              <h3 className="font-display font-bold text-xl tracking-tight text-fg mb-3">The old way</h3>
+              <p className="font-sans text-[15px] leading-relaxed text-fg-muted max-w-prose">
+                Googling &quot;is my microphone tax deductible&quot; at 11pm, exporting CSVs from 4 platforms, sobbing into a TurboTax form that was clearly built for your accountant uncle named Gary.
+              </p>
+            </div>
+            <div className={`p-8 sm:p-9 rounded-xl ${bentoPanelClass("border-green/25 bg-green-dim/30")}`}>
+              <span className="inline-block font-mono text-[10px] px-2 py-1 rounded border border-green/30 mb-4 tracking-wide text-green">
+                WITH GIGATAX
+              </span>
+              <span className="text-[26px] block mb-4" aria-hidden>
+                🤑
+              </span>
+              <h3 className="font-display font-bold text-xl tracking-tight text-green mb-3">The GigaTax way</h3>
+              <p className="font-sans text-[15px] leading-relaxed text-fg-muted max-w-prose">
+                Connect your platforms, we find every deduction, you file in under an hour. The IRS gets what it needs. You keep what you earned. Gary gets a thank-you card.
+              </p>
             </div>
           </div>
         </section>
 
-        <div
-          className="border-t border-white/[0.06]"
-          style={{
-            background: "linear-gradient(180deg, rgba(5,5,8,0.92) 0%, rgba(6,6,10,0.98) 100%)",
-          }}
-        >
-          <div className="max-w-6xl mx-auto px-5 sm:px-8 lg:px-10 py-16 sm:py-20 lg:py-24 space-y-16 sm:space-y-20">
-            <section aria-labelledby="who-heading">
-              <div className="max-w-3xl">
-                <h2 id="who-heading" className="font-display text-[15px] sm:text-base font-semibold text-[#EDEDED] tracking-tight">
-                  Who it&apos;s for
-                </h2>
-                <p className="mt-2 text-lg sm:text-xl font-display font-semibold text-[#EDEDED] leading-snug tracking-tight">
-                  You if your income doesn&apos;t arrive on a W-2.
-                </p>
-              </div>
+        {/* Who */}
+        <section id="who-its-for" className="px-5 sm:px-8 lg:px-10 py-20 sm:py-24 max-w-[1100px] mx-auto scroll-mt-28">
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-green mb-4">// Who it&apos;s for</p>
+          <h2 className="font-display font-extrabold text-[clamp(2rem,5vw,3.25rem)] tracking-[-0.04em] leading-tight text-fg mb-6 text-balance max-w-[18ch] sm:max-w-none">
+            If you get paid to
+            <br />
+            make stuff, <em className="text-green not-italic">hi.</em>
+          </h2>
+          <p className="font-sans text-[17px] max-w-[40rem] mb-12 leading-relaxed text-fg-muted">
+            GigaTax is for anyone whose income doesn&apos;t fit in a single box on a W-2. Which is... probably you.
+          </p>
 
-              <div className="mt-8 bento-card bento-card--flush overflow-hidden">
-                <ul className="divide-y divide-white/[0.06] list-none p-0 m-0">
-                  {[
-                    {
-                      icon: <Gamepad2 className="h-5 w-5 shrink-0" aria-hidden />,
-                      title: "Streamers & video creators",
-                      body: "Kick, Twitch, YouTube—platform payouts, tips, and brand deals in one place.",
-                    },
-                    {
-                      icon: <Palette className="h-5 w-5 shrink-0" aria-hidden />,
-                      title: "Freelance designers & editors",
-                      body: "Project checks and 1099-NECs from clients, not a single tidy employer row.",
-                    },
-                    {
-                      icon: <Sparkles className="h-5 w-5 shrink-0" aria-hidden />,
-                      title: "Anyone stacking 1099-Ks and NECs",
-                      body: "Rideshare, delivery, or side contracts—multiple payers, one workspace.",
-                    },
-                  ].map((row) => (
-                    <li key={row.title} className="flex gap-4 px-5 sm:px-6 py-5 first:pt-6 last:pb-6">
-                      <span className="mt-0.5" style={{ color: ICON_MUTED }}>
-                        {row.icon}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-[15px] font-semibold text-[#EDEDED]">{row.title}</p>
-                        <p className="text-[13px] mt-1 leading-relaxed font-normal" style={{ color: "#888888" }}>
-                          {row.body}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { e: "📱", t: "Content Creators", d: "YouTube, TikTok, Instagram. Ad revenue, sponsorships, tips. We track all of it." },
+              { e: "🎮", t: "Streamers", d: "Twitch subs, bits, donations, merch drops. Yes, it's all taxable. Yes, your PC is deductible." },
+              { e: "🎨", t: "Artists & Designers", d: "Commissions, print-on-demand, Patreon. We handle the chaos of selling your art online." },
+              { e: "🎙️", t: "Podcasters", d: "Sponsorships, Spotify deals, listener support. And yes, your mic setup is a write-off." },
+              { e: "💻", t: "Freelancers", d: "1099 city. Multiple clients. Inconsistent pay. We keep it clean so you can keep hustling." },
+              { e: "📦", t: "Sellers & Resellers", d: "Etsy, eBay, Amazon, Depop. Sales tax, income tax — it's a lot. We take care of it." },
+              { e: "✨", t: "and much more", d: "" },
+            ].map((w) => (
+              <div
+                key={w.t}
+                className={`rounded-xl p-6 sm:p-7 transition-colors hover:border-white/[0.1] ${bentoPanelClass()}`}
+              >
+                <span className="text-[26px] block mb-3" aria-hidden>
+                  {w.e}
+                </span>
+                <h3 className="font-display font-bold text-[15px] tracking-tight text-fg mb-2">{w.t}</h3>
+                {w.d ? (
+                  <p className="font-sans text-[12px] sm:text-[13px] leading-snug text-fg-muted">{w.d}</p>
+                ) : (
+                  <p className="font-sans text-[12px] sm:text-[13px] leading-snug text-fg-muted">
+                    Our workflows cover the messy edges of modern freelance income.
+                  </p>
+                )}
               </div>
-            </section>
+            ))}
+          </div>
+        </section>
 
-            <section id="how-it-works" className="scroll-mt-24" aria-labelledby="how-heading">
-              <div className="max-w-3xl">
-                <h2 id="how-heading" className="font-display text-[15px] sm:text-base font-semibold text-[#EDEDED] tracking-tight">
-                  How it works
-                </h2>
-                <p className="mt-2 text-lg font-display font-semibold text-[#EDEDED] tracking-tight">Connect, upload, review.</p>
-                <p className="mt-2 text-[14px] leading-relaxed font-normal" style={{ color: "#888888" }}>
-                  Same flow you&apos;ll see when you open the app—no brochure-only steps.
-                </p>
-              </div>
+        {/* Pricing */}
+        <section id="pricing" className="px-5 sm:px-8 lg:px-10 py-20 sm:py-24 max-w-[1100px] mx-auto scroll-mt-28">
+          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-green mb-4">// Pricing</p>
+          <h2 className="font-display font-extrabold text-[clamp(2rem,5vw,3.25rem)] tracking-[-0.04em] leading-tight text-fg mb-6 text-balance max-w-[16ch] sm:max-w-none">
+            We won&apos;t nickel
+            <br />
+            and <em className="text-green not-italic">dime you.</em>
+          </h2>
+          <p className="font-sans text-[17px] max-w-[40rem] mb-12 leading-relaxed text-fg-muted">
+            We only make money when you do. Your fee is based on how much your return saves you.
+          </p>
 
-              <ol className="mt-10 bento-card bento-card--flush list-none m-0 grid grid-cols-1 md:grid-cols-3 gap-0 md:divide-x md:divide-white/[0.08]">
-                {[
-                  {
-                    n: 1,
-                    title: "Connect",
-                    body: "Link bank and payout platforms so we can see cash flow the way you actually get paid.",
-                    icon: <Link2 className="h-5 w-5" style={{ color: ICON_MUTED }} aria-hidden />,
-                  },
-                  {
-                    n: 2,
-                    title: "Upload 1099s",
-                    body: "Add 1099-K, 1099-NEC, or 1099-MISC PDFs for payers we do not ingest automatically.",
-                    icon: <UploadCloud className="h-5 w-5" style={{ color: ICON_MUTED }} aria-hidden />,
-                  },
-                  {
-                    n: 3,
-                    title: "Review savings",
-                    body: "Open your dashboard—categorized activity, deduction nudges, and optimization before filing prep.",
-                    icon: <Sparkles className="h-5 w-5" style={{ color: ICON_MUTED }} aria-hidden />,
-                  },
-                ].map((step) => (
-                  <li
-                    key={step.n}
-                    className="flex flex-col items-start px-6 py-7 sm:px-7 sm:py-8 border-b border-white/[0.06] md:border-b-0 last:border-b-0"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span
-                        className="mn flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-semibold"
-                        style={{
-                          background: "rgba(0,255,133,0.1)",
-                          color: "#86EFAC",
-                          border: "1px solid rgba(0,255,133,0.28)",
-                          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)",
-                        }}
-                      >
-                        {step.n}
-                      </span>
-                      {step.icon}
-                    </div>
-                    <p className="mt-4 text-[15px] font-semibold text-[#EDEDED]">{step.title}</p>
-                    <p className="mt-2 text-[13px] leading-relaxed font-normal" style={{ color: "#888888" }}>
-                      {step.body}
-                    </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={`rounded-xl p-8 sm:p-9 relative ${bentoPanelClass()}`}>
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] mb-4 text-fg-muted">// Under $1,000 saved</p>
+              <p className="mn font-display font-extrabold text-5xl tracking-tight text-fg leading-none mb-1 tabular-nums">$0</p>
+              <p className="font-mono text-[13px] mb-8 text-fg-faint">free tier</p>
+              <ul className="list-none m-0 p-0 mb-8 space-y-2">
+                {["Tax return savings under $1,000", "No platform fee", "Plain English support"].map((li) => (
+                  <li key={li} className="flex gap-2.5 font-sans text-[14px] py-2 border-b border-white/[0.06] text-fg-muted">
+                    <span className="text-green font-mono text-xs shrink-0 mt-0.5">→</span>
+                    {li}
                   </li>
                 ))}
-              </ol>
-            </section>
+              </ul>
+              <Link
+                to="/start"
+                className="block w-full text-center rounded-lg py-3 text-[15px] font-semibold font-sans border border-white/[0.12] text-fg hover:bg-white/[0.05] hover:border-white/[0.2] transition-all duration-200 active:scale-[0.99]"
+              >
+                Start free
+              </Link>
+            </div>
 
-            <section className="bento-card max-w-3xl" aria-labelledby="why-heading">
-              <div className="border-l-2 pl-5 sm:pl-6" style={{ borderColor: "rgba(0,255,133,0.35)" }}>
-                <h2 id="why-heading" className="font-display text-[15px] sm:text-base font-semibold text-[#EDEDED] tracking-tight">
-                  Why it&apos;s different
-                </h2>
-                <p className="mt-3 text-[15px] sm:text-[16px] leading-relaxed font-normal" style={{ color: "#a3a3a3" }}>
-                  Most tax products still assume a W-2 and a single employer. You have platforms, 1099s, and expenses that only make sense together.
-                </p>
-                <p className="mt-4 text-[15px] sm:text-[16px] leading-relaxed font-normal" style={{ color: "#a3a3a3" }}>
-                  GigATax keeps the picture in one place: income, write-offs, and what&apos;s still worth a second look—without turning the screen into a brochure.
-                </p>
+            <div className={`rounded-xl p-8 sm:p-9 relative ${bentoPanelClass("border-green/35 ring-1 ring-green/15")}`}>
+              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 font-mono text-[10px] font-medium px-3 py-1 rounded-full whitespace-nowrap tracking-wide bg-green text-[#04140e] border border-white/[0.08]">
+                most popular
               </div>
-            </section>
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] mb-4 text-fg-muted">// $1,000-$10,000 saved</p>
+              <p className="mn font-display font-extrabold text-5xl tracking-tight text-fg leading-none mb-1 tabular-nums">2.5%</p>
+              <p className="font-mono text-[13px] mb-8 text-fg-faint">flat fee on return savings</p>
+              <ul className="list-none m-0 p-0 mb-8 space-y-2">
+                {[
+                  "Applied when savings are $1,000-$10,000",
+                  "Single flat 2.5% rate",
+                  "No monthly subscription",
+                  "Pay only when you benefit",
+                ].map((li) => (
+                  <li key={li} className="flex gap-2.5 font-sans text-[14px] py-2 border-b border-white/[0.06] text-fg-muted">
+                    <span className="text-green font-mono text-xs shrink-0 mt-0.5">→</span>
+                    {li}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/start"
+                className="block w-full text-center rounded-lg py-3 text-[15px] font-semibold font-sans bg-green text-[#04140e] border border-green hover:opacity-95 hover:shadow-[0_0_0_1px_rgba(0,255,133,0.45),0_8px_24px_rgba(0,255,133,0.22)] transition-all duration-200 active:scale-[0.99]"
+              >
+                Get the good one →
+              </Link>
+            </div>
 
-            <section className="bento-card" aria-label="Security and demo notice">
-              <div className="max-w-3xl space-y-4 text-[13px] leading-relaxed font-normal" style={{ color: "#666666" }}>
-                <p>
-                  <span className="font-medium text-[#a3a3a3]">Encryption.</span> Data in transit is encrypted. This is a
-                  prototype—don&apos;t upload real SSNs or secrets.
-                </p>
-                <p>
-                  <span className="font-medium text-[#a3a3a3]">Read-only.</span> We don&apos;t move money or file for you in
-                  this build. You get visibility and demo estimates only.
-                </p>
-                <p className="text-[12px]" style={{ color: "#555555" }}>
-                  Hackathon demo with mocked data. When it matters, talk to a licensed preparer.
-                </p>
-              </div>
-            </section>
+            <div className={`rounded-xl p-8 sm:p-9 relative ${bentoPanelClass()}`}>
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] mb-4 text-fg-muted">// Above $10,000 saved</p>
+              <p className="mn font-display font-extrabold text-5xl tracking-tight text-fg leading-none mb-1 tabular-nums">3%</p>
+              <p className="font-mono text-[13px] mb-8 text-fg-faint">flat fee on return savings</p>
+              <ul className="list-none m-0 p-0 mb-8 space-y-2">
+                {["Applied when savings are above $10,000", "Single flat 3% rate", "No monthly subscription", "Built for larger returns", "Aligned with your upside"].map((li) => (
+                  <li key={li} className="flex gap-2.5 font-sans text-[14px] py-2 border-b border-white/[0.06] text-fg-muted">
+                    <span className="text-green font-mono text-xs shrink-0 mt-0.5">→</span>
+                    {li}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                to="/start"
+                className="block w-full text-center rounded-lg py-3 text-[15px] font-semibold font-sans border border-white/[0.12] text-fg hover:bg-white/[0.05] hover:border-white/[0.2] transition-all duration-200 active:scale-[0.99]"
+              >
+                Go pro
+              </Link>
+            </div>
           </div>
-        </div>
+        </section>
+
       </main>
 
-      <footer className="relative z-10 mt-auto px-5 sm:px-8 lg:px-10 py-8 border-t border-white/[0.06] text-center backdrop-blur-sm" style={{ background: "rgba(6,6,10,0.5)" }}>
-        <p className="text-[12px] font-normal flex flex-wrap items-center justify-center gap-x-1.5 gap-y-1" style={{ color: "#555555" }}>
-          <span>© {TAX_YEAR}</span>
-          <GigaTaxWordmark size="xs" tone="subtle" />
-          <span>· Not individualized tax advice, audit defense, or filing representation.</span>
+      <footer className="relative z-10 border-t border-white/[0.06] px-5 sm:px-8 lg:px-10 py-10 max-w-[1100px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 bg-[#0a0a0a]/80">
+        <GigaTaxWordmark size="sm" className="shrink-0" />
+        <p className="font-mono text-[11px] order-last sm:order-none text-fg-faint">
+          // taxes for the gig economy · {TAX_YEAR}
         </p>
       </footer>
     </div>

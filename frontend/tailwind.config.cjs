@@ -91,11 +91,16 @@ module.exports = {
           "0%":   { opacity: "0", transform: "translateY(6px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        "landing-marquee": {
+          "0%":   { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         rise:          "rise 380ms cubic-bezier(0.16,1,0.3,1) both",
         "pulse-green": "pulse-green 2.4s ease-in-out infinite",
         ticker:        "ticker 300ms ease-out both",
+        "landing-marquee": "landing-marquee 22s linear infinite",
       },
     },
   },
