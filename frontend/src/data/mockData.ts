@@ -6,6 +6,7 @@ import type {
   GigType,
   IntegrationConnection,
   OptimizationSignal,
+  TransactionCategory,
   Transaction,
   UserProfile,
 } from "../types/domain";
@@ -75,6 +76,48 @@ export const mockTransactions: Transaction[] = [
   { id: "txn_5", date: "2026-04-13", merchant: "Best Buy", amount: 179.99, type: "expense", category: "Supplies", confidenceScore: 0.73, source: "receipt" },
   { id: "txn_6", date: "2026-04-11", merchant: "Patreon", amount: 950, type: "income", category: "Income", confidenceScore: 0.96, source: "bank" },
 ];
+
+export const mockTransactionsByCategory: Record<TransactionCategory, Transaction[]> = {
+  Income: [
+    { id: "cat-inc-1", date: "2026-04-17", merchant: "YouTube", amount: 3200, type: "income", category: "Income", confidenceScore: 0.99, source: "bank" },
+    { id: "cat-inc-2", date: "2026-04-11", merchant: "Patreon", amount: 950, type: "income", category: "Income", confidenceScore: 0.96, source: "bank" },
+    { id: "cat-inc-3", date: "2026-04-08", merchant: "Stripe", amount: 740, type: "income", category: "Income", confidenceScore: 0.95, source: "bank" },
+  ],
+  Software: [
+    { id: "cat-sw-1", date: "2026-04-16", merchant: "Adobe", amount: 59.99, type: "expense", category: "Software", confidenceScore: 0.97, source: "bank" },
+    { id: "cat-sw-2", date: "2026-04-12", merchant: "Notion", amount: 12.0, type: "expense", category: "Software", confidenceScore: 0.95, source: "bank" },
+    { id: "cat-sw-3", date: "2026-04-09", merchant: "Canva", amount: 14.99, type: "expense", category: "Software", confidenceScore: 0.94, source: "email" },
+  ],
+  Travel: [
+    { id: "cat-tr-1", date: "2026-04-14", merchant: "Delta", amount: 417.35, type: "expense", category: "Travel", confidenceScore: 0.9, source: "email" },
+    { id: "cat-tr-2", date: "2026-04-10", merchant: "Uber", amount: 43.2, type: "expense", category: "Travel", confidenceScore: 0.93, source: "bank" },
+    { id: "cat-tr-3", date: "2026-04-06", merchant: "Hilton", amount: 219.0, type: "expense", category: "Travel", confidenceScore: 0.89, source: "bank" },
+  ],
+  Meals: [
+    { id: "cat-me-1", date: "2026-04-15", merchant: "Sweetgreen", amount: 21.45, type: "expense", category: "Meals", confidenceScore: 0.91, source: "receipt" },
+    { id: "cat-me-2", date: "2026-04-12", merchant: "Blue Bottle", amount: 18.2, type: "expense", category: "Meals", confidenceScore: 0.9, source: "bank" },
+    { id: "cat-me-3", date: "2026-04-07", merchant: "DoorDash", amount: 33.75, type: "expense", category: "Meals", confidenceScore: 0.88, source: "email" },
+  ],
+  Vehicle: [
+    { id: "cat-veh-1", date: "2026-04-16", merchant: "Shell", amount: 486.2, type: "expense", category: "Vehicle", confidenceScore: 0.92, source: "bank", notes: "Multiple fuel fills detected" },
+    { id: "cat-veh-2", date: "2026-04-10", merchant: "Chevron", amount: 122.34, type: "expense", category: "Vehicle", confidenceScore: 0.91, source: "bank" },
+    { id: "cat-veh-3", date: "2026-04-05", merchant: "Exxon", amount: 98.17, type: "expense", category: "Vehicle", confidenceScore: 0.9, source: "bank" },
+  ],
+  "Home Office": [
+    { id: "cat-ho-1", date: "2026-04-13", merchant: "IKEA", amount: 124.0, type: "expense", category: "Home Office", confidenceScore: 0.86, source: "receipt" },
+    { id: "cat-ho-2", date: "2026-04-09", merchant: "Staples", amount: 47.6, type: "expense", category: "Home Office", confidenceScore: 0.87, source: "receipt" },
+    { id: "cat-ho-3", date: "2026-04-04", merchant: "Amazon", amount: 89.99, type: "expense", category: "Home Office", confidenceScore: 0.84, source: "email" },
+  ],
+  Supplies: [
+    { id: "cat-sup-1", date: "2026-04-13", merchant: "Best Buy", amount: 179.99, type: "expense", category: "Supplies", confidenceScore: 0.73, source: "receipt" },
+    { id: "cat-sup-2", date: "2026-04-11", merchant: "B&H", amount: 64.5, type: "expense", category: "Supplies", confidenceScore: 0.88, source: "bank" },
+    { id: "cat-sup-3", date: "2026-04-03", merchant: "Target", amount: 39.2, type: "expense", category: "Supplies", confidenceScore: 0.82, source: "receipt" },
+  ],
+  Uncategorized: [
+    { id: "cat-unc-1", date: "2026-04-12", merchant: "Square", amount: 49.0, type: "expense", category: "Uncategorized", confidenceScore: 0.54, source: "bank" },
+    { id: "cat-unc-2", date: "2026-04-08", merchant: "Unknown Merchant", amount: 27.5, type: "expense", category: "Uncategorized", confidenceScore: 0.51, source: "email" },
+  ],
+};
 
 export const mockDeductions: Deduction[] = [
   {

@@ -17,7 +17,7 @@ def main() -> int:
     check_database_connectivity()
     print("Startup DB check passed. Launching FastAPI with uvicorn...")
 
-    app_target = os.getenv("APP_MODULE", "main:app")
+    app_target = os.getenv("APP_MODULE", "backend.main:app")
     host = os.getenv("HOST", "127.0.0.1")
     port = os.getenv("PORT", "8000")
 
@@ -32,7 +32,11 @@ def main() -> int:
         str(port),
     ]
 
-    return subprocess.call(cmd)
+    env = os.environ.copy()
+    existing_pythonpath = env.get("PYTHONPATH", "")
+    env["PYTHONPATH"] = f"{REPO_ROOT}{os.pathsep}{existing_pythonpath}" if existing_pythonpath else str(REPO_ROOT)
+
+    return subprocess.call(cmd, cwd=str(REPO_ROOT), env=env)
 
 
 if __name__ == "__main__":

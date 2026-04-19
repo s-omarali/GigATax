@@ -113,6 +113,27 @@ export function CategorizationFeed({
         </div>
       </div>
 
+      <div className="mb-4 flex flex-wrap gap-2">
+        {categories.map((category) => {
+          const active = category === selectedCategory;
+          return (
+            <button
+              key={category}
+              type="button"
+              className="chip"
+              onClick={() => onSelectCategory(category)}
+              style={
+                active
+                  ? { background: "rgba(59,130,246,0.2)", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.45)" }
+                  : { background: "rgba(255,255,255,0.04)", color: "#888888", border: "1px solid rgba(255,255,255,0.08)" }
+              }
+            >
+              {category}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Feed rows */}
       <div className="flex-1 space-y-1.5 overflow-y-auto">
         {transactions.map((txn, idx) => {

@@ -28,6 +28,8 @@ export function DashboardPage() {
   const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [selectedFeedCategory, setSelectedFeedCategory] = useState<"All" | TransactionCategory>("All");
 
   const mergedOptimizationSignals = useMemo(
     () => mergeOptimizationCompletion(dashboard?.optimizationSignals ?? [], completedIds),
@@ -59,10 +61,17 @@ export function DashboardPage() {
 
     async function load() {
       setIsLoading(true);
-      const [dash, profile] = await Promise.all([getDashboardData(), getCurrentUser()]);
+      setLoadError(null);
+      try {
+        const [dash, profile] = await Promise.all([getDashboardData(), getCurrentUser()]);
+        if (!alive) return;
+        setDashboard(dash);
+        setUser(profile);
+      } catch (error) {
+        if (!alive) return;
+        setLoadError(error instanceof Error ? error.message : "Unable to load dashboard data.");
+      }
       if (!alive) return;
-      setDashboard(dash);
-      setUser(profile);
       setIsLoading(false);
     }
 
@@ -99,8 +108,35 @@ export function DashboardPage() {
     [user?.state]
   );
 
+  const aiFeedTransactions = useMemo<Transaction[]>(() => {
+    if (selectedFeedCategory === "All") {
+      return Object.values(mockTransactionsByCategory)
+        .flat()
+        .sort((a, b) => b.date.localeCompare(a.date));
+    }
+    return mockTransactionsByCategory[selectedFeedCategory] ?? [];
+  }, [selectedFeedCategory]);
+
+  function asTransactionCategory(value: string): TransactionCategory | null {
+    const categories: TransactionCategory[] = [
+      "Income",
+      "Software",
+      "Travel",
+      "Meals",
+      "Vehicle",
+      "Home Office",
+      "Supplies",
+      "Uncategorized",
+    ];
+    return categories.includes(value as TransactionCategory) ? (value as TransactionCategory) : null;
+  }
+
   if (isLoading) {
     return <LoadingState title="Dashboard" description="Running the numbers…" />;
+  }
+
+  if (loadError) {
+    return <EmptyState title="Dashboard data unavailable" description={loadError} />;
   }
 
   if (!dashboard || dashboard.transactions.length === 0) {

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import sqlite3
 from pathlib import Path
 
 
@@ -26,42 +25,37 @@ def _load_env_file(path: Path, *, override: bool = False) -> None:
 
 
 def _load_env() -> None:
-    # Root .env is preferred for backend values; fallback to frontend/.env for current repo layout.
-    repo_root = Path(__file__).resolve().parents[1]
-    root_env = repo_root / ".env"
-    frontend_env = repo_root / "frontend" / ".env"
-
-    _load_env_file(root_env, override=False)
-    _load_env_file(frontend_env, override=False)
-
-
-def _sqlite_db_path() -> Path:
-    repo_root = Path(__file__).resolve().parents[1]
-    configured = os.getenv("SQLITE_DB_PATH", "").strip()
-    if configured:
-        return Path(configured).expanduser().resolve()
-    return (repo_root / "backend" / "data" / "gigatax.db").resolve()
+    backend_dir = Path(__file__).resolve().parent
+    repo_root = backend_dir.parent
+    _load_env_file(backend_dir / ".env", override=False)
+    _load_env_file(repo_root / "frontend" / ".env", override=False)
 
 
 def check_database_connectivity() -> None:
     _load_env()
 
-    db_path = _sqlite_db_path()
-    db_path.parent.mkdir(parents=True, exist_ok=True)
+    url = os.getenv("SUPABASE_URL", "").strip()
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+
+    if not url or not key:
+        raise RuntimeError(
+            "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env. "
+            "Create a Supabase project and copy the credentials into backend/.env."
+        )
 
     try:
-        with sqlite3.connect(db_path) as conn:
-            cur = conn.cursor()
-            cur.execute("PRAGMA journal_mode=WAL;")
-            cur.execute("SELECT 1;")
-            cur.fetchone()
-    except Exception as exc:  # pragma: no cover
+        from supabase import create_client
+
+        client = create_client(url, key)
+        client.table("users").select("id").limit(1).execute()
+    except Exception as exc:
         raise RuntimeError(
-            "SQLite connectivity check failed. Verify SQLITE_DB_PATH permissions and local disk accessibility. "
+            f"Supabase connectivity check failed. Verify your SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. "
+            f"Also ensure the 'users' table exists (run the schema SQL in the Supabase dashboard). "
             f"Original error: {exc}"
         ) from exc
 
 
 if __name__ == "__main__":
     check_database_connectivity()
-    print("Database connectivity check passed.")
+    print("Supabase connectivity check passed.")

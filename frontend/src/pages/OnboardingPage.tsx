@@ -20,10 +20,17 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePlaidLink } from "react-plaid-link";
 import { useNavigate } from "react-router-dom";
 import { GigaTaxWordmark } from "../components/branding/GigaTaxWordmark";
 import { gigOptions } from "../data/mockData";
-import { getIntegrationDefaults, saveOnboarding } from "../services/mockApi";
+import {
+  createPlaidLinkToken,
+  exchangePlaidPublicToken,
+  getIntegrationDefaults,
+  saveOnboarding,
+  syncAllPlaidTransactions,
+} from "../services/mockApi";
 import type { IntegrationConnection, UserProfile } from "../types/domain";
 
 // ── Icon map ──────────────────────────────────────────────────────────────
@@ -244,6 +251,57 @@ export function OnboardingPage() {
           return rest;
         });
       }, 780);
+    }
+  }
+
+  const onPlaidSuccess = useCallback(async (publicToken: string) => {
+    await exchangePlaidPublicToken({ public_token: publicToken });
+    await syncAllPlaidTransactions();
+
+    setIntegrations((prev) =>
+      prev.map((integration) =>
+        integration.id === "bank"
+          ? { ...integration, connected: true, lastSyncAt: new Date().toISOString() }
+          : integration
+      )
+    );
+
+    setIsPlaidConnecting(false);
+    setPlaidLinkToken(null);
+  }, []);
+
+  const { open: openPlaid, ready: plaidReady } = usePlaidLink({
+    token: plaidLinkToken,
+    onSuccess: (publicToken) => {
+      void onPlaidSuccess(publicToken);
+    },
+    onExit: () => {
+      setIsPlaidConnecting(false);
+    },
+  });
+
+  useEffect(() => {
+    if (!plaidLinkToken || !plaidReady || !isPlaidConnecting) return;
+    openPlaid();
+  }, [isPlaidConnecting, openPlaid, plaidLinkToken, plaidReady]);
+
+  async function handleIntegrationConnect(integration: IntegrationConnection) {
+    if (integration.id !== "bank") {
+      toggleIntegration(integration.id);
+      return;
+    }
+
+    if (integration.connected) {
+      toggleIntegration(integration.id);
+      return;
+    }
+
+    try {
+      setIsPlaidConnecting(true);
+      const tokenResponse = await createPlaidLinkToken();
+      setPlaidLinkToken(tokenResponse.link_token);
+    } catch {
+      setIsPlaidConnecting(false);
     }
   }
 
