@@ -35,7 +35,7 @@ import {
   getEstimatedTaxSavings,
 } from "../utils/taxMath";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8000";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "https://hackmsa-2026-production.up.railway.app";
 const ALLOW_MOCK_FALLBACK = import.meta.env.VITE_ALLOW_MOCK_FALLBACK !== "false";
 
 async function getAuthHeaders(extraHeaders?: Record<string, string>): Promise<Record<string, string>> {

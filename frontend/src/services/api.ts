@@ -1,5 +1,5 @@
 /**
- * Real API client — calls the FastAPI backend at localhost:8000.
+ * Real API client — calls the FastAPI backend.
  * Swap imports from mockApi to this file when the backend is running.
  *
  * Auth: each request attaches the Supabase JWT so FastAPI can verify identity.
@@ -22,7 +22,7 @@ import type {
 } from "../types/api";
 import type { FilingProfile, FilingRun, IntegrationConnection, UserProfile } from "../types/domain";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://hackmsa-2026-production.up.railway.app";
 
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const authHeaders = await getAuthHeaders();
