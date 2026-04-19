@@ -27,15 +27,15 @@ const navItems = [
 ];
 
 export function AppShell() {
-  const { completedIds } = useOptimizationReview();
+  const { completedIds, dismissedIds } = useOptimizationReview();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [dashForBadge, setDashForBadge] = useState<Awaited<ReturnType<typeof getDashboardData>> | null>(null);
 
   const optimizationBadgeCount = useMemo(() => {
     if (!dashForBadge) return 0;
-    const merged = mergeOptimizationCompletion(dashForBadge.optimizationSignals, completedIds);
+    const merged = mergeOptimizationCompletion(dashForBadge.optimizationSignals, completedIds, dismissedIds);
     return countIncompleteOptimizationSignals(merged);
-  }, [dashForBadge, completedIds]);
+  }, [dashForBadge, completedIds, dismissedIds]);
 
   useEffect(() => {
     let alive = true;

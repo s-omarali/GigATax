@@ -24,17 +24,19 @@ export function resetOptimizationTasksForDemo(): void {
 /** Merge mock `completed` with user-marked IDs from Optimization tab. */
 export function mergeOptimizationCompletion(
   signals: OptimizationSignal[],
-  userCompletedIds: ReadonlySet<string>
+  userCompletedIds: ReadonlySet<string>,
+  userDismissedIds: ReadonlySet<string>
 ): OptimizationSignal[] {
   return signals.map((s) => ({
     ...s,
     completed: Boolean(s.completed || userCompletedIds.has(s.id)),
+    dismissed: Boolean(s.dismissed || userDismissedIds.has(s.id)),
   }));
 }
 
 /** Signals the user still needs to review on Optimization (demo: `completed` flag in mock data). */
 export function incompleteOptimizationSignals(signals: OptimizationSignal[]): OptimizationSignal[] {
-  return signals.filter((s) => !s.completed);
+  return signals.filter((s) => !s.completed && !s.dismissed);
 }
 
 export function countIncompleteOptimizationSignals(signals: OptimizationSignal[]): number {
@@ -79,6 +81,10 @@ export function estimatePendingOptimizationTaxSavingsUpperBound(
       const businessMiles = Math.max(0, Math.floor(inferredMiles));
       const allowed = getAllowedMileageDeduction(businessMiles);
       sum += getEstimatedTaxSavings(allowed, rate);
+    } else if (s.type === "meal_review") {
+      // Demo assumption: 50% meal deduction eligibility once substantiated.
+      const deduction = s.meals.reduce((acc, meal) => acc + meal.amount * 0.5, 0);
+      sum += getEstimatedTaxSavings(deduction, rate);
     }
   }
   return Math.round(sum * 100) / 100;

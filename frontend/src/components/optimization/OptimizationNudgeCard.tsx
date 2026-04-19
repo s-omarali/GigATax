@@ -11,6 +11,7 @@ interface OptimizationNudgeCardProps {
   marginalTaxRate: number;
   /** Marks this signal complete app-wide (dashboard badge, Action Required, etc.). */
   onReviewComplete?: () => void;
+  onDismiss?: () => void;
 }
 
 interface MileageResult {
@@ -24,6 +25,7 @@ export function OptimizationNudgeCard({
   stateCode,
   marginalTaxRate,
   onReviewComplete,
+  onDismiss,
 }: OptimizationNudgeCardProps) {
   const [selectedState, setSelectedState] = useState(stateCode || "TX");
   const [mpg, setMpg] = useState(24);
@@ -261,19 +263,33 @@ export function OptimizationNudgeCard({
 
       {onReviewComplete ? (
         <div className="mt-6 border-t border-white/[0.06] pt-6">
-          <button
-            type="button"
-            onClick={onReviewComplete}
-            className="w-full rounded-xl px-4 py-3 text-[13px] font-extrabold transition-all duration-150 active:scale-[0.99]"
-            style={{
-              background: "rgba(0,255,133,0.12)",
-              border: "1px solid rgba(0,255,133,0.35)",
-              color: "#00FF85",
-              boxShadow: "0 0 22px rgba(0,255,133,0.12)",
-            }}
-          >
-            Confirm and complete review
-          </button>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={onReviewComplete}
+              className="w-full rounded-xl px-4 py-3 text-[13px] font-extrabold transition-all duration-150 active:scale-[0.99]"
+              style={{
+                background: "rgba(0,255,133,0.12)",
+                border: "1px solid rgba(0,255,133,0.35)",
+                color: "#00FF85",
+                boxShadow: "0 0 22px rgba(0,255,133,0.12)",
+              }}
+            >
+              Confirm and complete review
+            </button>
+            <button
+              type="button"
+              onClick={onDismiss}
+              className="w-full rounded-xl px-4 py-3 text-[13px] font-extrabold transition-all duration-150 active:scale-[0.99]"
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.14)",
+                color: "#AAAAAA",
+              }}
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       ) : null}
     </section>

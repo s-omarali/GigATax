@@ -14,13 +14,17 @@ resetOptimizationTasksForDemo();
 interface OptimizationReviewContextValue {
   /** Signal IDs marked complete this session (in-memory; resets on full page reload for demo). */
   completedIds: ReadonlySet<string>;
+  /** Signal IDs dismissed this session (in-memory; resets on full page reload for demo). */
+  dismissedIds: ReadonlySet<string>;
   completeSignal: (signalId: string) => void;
+  dismissSignal: (signalId: string) => void;
 }
 
 const OptimizationReviewContext = createContext<OptimizationReviewContextValue | null>(null);
 
 export function OptimizationReviewProvider({ children }: { children: ReactNode }) {
   const [completedIds, setCompletedIds] = useState<Set<string>>(() => new Set());
+  const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => new Set());
 
   const completeSignal = useCallback((signalId: string) => {
     setCompletedIds((prev) => {
@@ -31,9 +35,18 @@ export function OptimizationReviewProvider({ children }: { children: ReactNode }
     });
   }, []);
 
+  const dismissSignal = useCallback((signalId: string) => {
+    setDismissedIds((prev) => {
+      if (prev.has(signalId)) return prev;
+      const next = new Set(prev);
+      next.add(signalId);
+      return next;
+    });
+  }, []);
+
   const value = useMemo<OptimizationReviewContextValue>(
-    () => ({ completedIds, completeSignal }),
-    [completedIds, completeSignal]
+    () => ({ completedIds, dismissedIds, completeSignal, dismissSignal }),
+    [completedIds, dismissedIds, completeSignal, dismissSignal]
   );
 
   return (

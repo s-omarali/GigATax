@@ -51,13 +51,23 @@ export function CategorizationFeed({
   onUpdateTransaction,
   onRemoveTransaction,
 }: CategorizationFeedProps) {
+  const DEFAULT_VISIBLE_COUNT = 7;
   const [menu, setMenu] = useState<TxnMenuState | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState<TransactionCategory | "All">("All");
+  const [showAll, setShowAll] = useState(false);
   const categories: Array<TransactionCategory | "All"> = ["All", ...ALL_CATEGORIES];
+  const filteredTransactions =
+    selectedCategory === "All"
+      ? transactions
+      : transactions.filter((txn) => txn.category === selectedCategory);
+  const visibleTransactions = showAll
+    ? filteredTransactions
+    : filteredTransactions.slice(0, DEFAULT_VISIBLE_COUNT);
 
   function onSelectCategory(cat: TransactionCategory | "All") {
     setSelectedCategory(cat);
+    setShowAll(false);
   }
 
   // Close menu on outside click
@@ -144,7 +154,7 @@ export function CategorizationFeed({
 
       {/* Feed rows */}
       <div className="flex-1 space-y-1.5 overflow-y-auto">
-        {transactions.map((txn, idx) => {
+        {visibleTransactions.map((txn, idx) => {
           const cat = CATEGORY_COLORS[txn.category] ?? CATEGORY_COLORS.Uncategorized;
           const isIncome = txn.type === "income";
           const isMenuOpen = menu?.txnId === txn.id;
@@ -386,6 +396,36 @@ export function CategorizationFeed({
             </div>
           );
         })}
+
+        {filteredTransactions.length === 0 && (
+          <div
+            className="rounded-xl px-4 py-3 text-[12px]"
+            style={{
+              background: "rgba(255,255,255,0.02)",
+              border: "1px solid rgba(255,255,255,0.05)",
+              color: "#888888",
+            }}
+          >
+            No transactions found for this filter.
+          </div>
+        )}
+
+        {filteredTransactions.length > DEFAULT_VISIBLE_COUNT && (
+          <button
+            type="button"
+            onClick={() => setShowAll((prev) => !prev)}
+            className="w-full rounded-xl py-2.5 text-[12px] font-semibold transition-all duration-150"
+            style={{
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              color: "#888888",
+            }}
+          >
+            {showAll
+              ? "Show less"
+              : `See all (${filteredTransactions.length})`}
+          </button>
+        )}
       </div>
     </section>
   );

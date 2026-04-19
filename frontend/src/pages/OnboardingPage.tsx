@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePlaidLink } from "react-plaid-link";
 import { useNavigate } from "react-router-dom";
 import { GigaTaxWordmark } from "../components/branding/GigaTaxWordmark";
-import { gigOptions } from "../data/mockData";
+import { estimateAnnualIncomeFromGigs, gigOptions } from "../data/mockData";
 import {
   createPlaidLinkToken,
   exchangePlaidPublicToken,
@@ -46,24 +46,16 @@ const GIG_ICONS: Record<string, React.ReactNode> = {
 
 const TOTAL_ONBOARDING_STEPS = 7;
 
-// ── Seven steps: sign-in → profile → gigs → income → connect → 1099s → done ─────
+// ── Seven steps: sign-in → profile → gigs → location → connect → 1099s → done ─────
 const STEPS = [
   { number: 1, label: "Sign in" },
   { number: 2, label: "Profile" },
   { number: 3, label: "Your Work" },
-  { number: 4, label: "Income" },
+  { number: 4, label: "Location" },
   { number: 5, label: "Connect" },
   { number: 6, label: "1099s" },
   { number: 7, label: "You're in" },
 ];
-
-function parseIncomeDollars(raw: string): number | null {
-  const cleaned = raw.replace(/[$,\s]/g, "").trim();
-  if (cleaned === "") return null;
-  const n = Number(cleaned);
-  if (!Number.isFinite(n) || n < 0) return null;
-  return Math.floor(n);
-}
 
 function isValidEmailFormat(value: string): boolean {
   const t = value.trim();
@@ -179,10 +171,8 @@ export function OnboardingPage() {
   const [selectedGigs, setSelectedGigs] = useState<UserProfile["gigs"]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Step 4 — income + state
-  const [annualIncomeInput, setAnnualIncomeInput] = useState("");
+  // Step 4 — state
   const [residenceState, setResidenceState] = useState("TX");
-  const [incomeFieldError, setIncomeFieldError] = useState("");
 
   useEffect(() => {
     if (step === 4) setResidenceState("TX");
@@ -425,7 +415,7 @@ export function OnboardingPage() {
   }
 
   async function handleFinish() {
-    const income = parseIncomeDollars(annualIncomeInput);
+    const derivedAnnualIncome = estimateAnnualIncomeFromGigs(selectedGigs);
     setIsSaving(true);
     await saveOnboarding({
       fullName: profileFullName.trim(),
@@ -433,7 +423,7 @@ export function OnboardingPage() {
       gigs: selectedGigs,
       integrations,
       state: residenceState,
-      estimatedAnnualIncome: income ?? 0,
+      estimatedAnnualIncome: derivedAnnualIncome,
     });
     setIsSaving(false);
     setStep(7);
@@ -533,9 +523,6 @@ export function OnboardingPage() {
                   <span className="font-bold">Sign in to</span>
                   <GigaTaxWordmark size="2xl" className="translate-y-[0.06em]" />
                 </h1>
-                <p className="text-[14px] leading-relaxed" style={{ color: "#888888" }}>
-                  Use Google or email — demo only, no real authentication.
-                </p>
               </div>
 
               <button
@@ -625,9 +612,6 @@ export function OnboardingPage() {
                 <h1 className="text-[2rem] font-bold leading-tight tracking-tight text-[#EDEDED] mb-3">
                   Confirm your details
                 </h1>
-                <p className="text-[14px] leading-relaxed" style={{ color: "#888888" }}>
-                  We use your legal name and email on your tax profile and account — edit if anything looks off.
-                </p>
               </div>
 
               <div className="space-y-3">
@@ -702,9 +686,6 @@ export function OnboardingPage() {
                 <p className="text-[14px] leading-relaxed" style={{ color: "#888888" }}>
                   Taxes are annoying. We get it. Tell us how you earn — we&apos;ll match deductions to your real work.
                 </p>
-                <p className="text-[12px] mt-3" style={{ color: "#666666" }}>
-                  Already helping 2,400+ gig workers keep more of their money.
-                </p>
               </div>
 
               <input
@@ -777,7 +758,7 @@ export function OnboardingPage() {
             </div>
           )}
 
-          {/* ══════════════════ STEP 4 — Estimated income + state ══════════════════ */}
+          {/* ══════════════════ STEP 4 — State ══════════════════ */}
           {step === 4 && (
             <div className="animate-rise space-y-7">
               <div className="text-center">
@@ -785,44 +766,11 @@ export function OnboardingPage() {
                   Step 4 of {TOTAL_ONBOARDING_STEPS}
                 </p>
                 <h1 className="text-[2rem] font-bold leading-tight tracking-tight text-[#EDEDED] mb-3">
-                  Income &amp; where you live
+                  Where you live
                 </h1>
-                <p className="text-[14px] leading-relaxed" style={{ color: "#888888" }}>
-                  We use this to tune your dashboard estimates — not as filing advice.
-                </p>
               </div>
 
               <div className="space-y-4">
-                <label className="block space-y-1.5">
-                  <span className="text-[12px] font-medium" style={{ color: "#888888" }}>
-                    Estimated annual income (USD)
-                  </span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    value={annualIncomeInput}
-                    onChange={(e) => {
-                      setAnnualIncomeInput(e.target.value);
-                      if (incomeFieldError) setIncomeFieldError("");
-                    }}
-                    onBlur={() => {
-                      const n = parseIncomeDollars(annualIncomeInput);
-                      if (n != null) setAnnualIncomeInput(n.toLocaleString("en-US"));
-                    }}
-                    placeholder="e.g. 52000"
-                    className="giga-input mn w-full"
-                    aria-invalid={Boolean(incomeFieldError)}
-                  />
-                  {incomeFieldError ? (
-                    <p className="text-[12px]" style={{ color: "#F87171" }}>{incomeFieldError}</p>
-                  ) : (
-                    <p className="text-[11px]" style={{ color: "#555555" }}>
-                      Whole dollars before taxes · required
-                    </p>
-                  )}
-                </label>
-
                 <label className="block space-y-1.5">
                   <span className="text-[12px] font-medium" style={{ color: "#888888" }}>
                     State of residence
@@ -851,9 +799,7 @@ export function OnboardingPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (validateIncomeStep()) setStep(5);
-                  }}
+                  onClick={() => setStep(5)}
                   className="flex-[2] flex items-center justify-center gap-2 rounded-2xl py-3.5 text-[14px] font-semibold transition-all duration-150 active:scale-[0.98]"
                   style={{ background: "#3B82F6", color: "#ffffff" }}
                 >
