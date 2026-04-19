@@ -30,7 +30,8 @@ import {
   getIntegrationDefaults,
   saveOnboarding,
   syncAllPlaidTransactions,
-} from "../services/mockApi";
+} from "../services/api";
+import { auth, supabase } from "../services/supabaseClient";
 import type { IntegrationConnection, UserProfile } from "../types/domain";
 
 // ── Icon map ──────────────────────────────────────────────────────────────
@@ -333,29 +334,55 @@ export function OnboardingPage() {
     addFiles(e.dataTransfer.files);
   }
 
-  function handleGoogleSignIn() {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("from") !== "google") return;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      setProfileEmail(data.user.email ?? "");
+      setProfileFullName(data.user.user_metadata?.full_name ?? "");
+      setStep(2);
+    });
+  }, []);
+
+  async function handleGoogleSignIn() {
     setSignInError("");
     setIsGoogleLoading(true);
-    window.setTimeout(() => {
-      setProfileFullName("Morgan Chen");
-      setProfileEmail("morgan.chen@gmail.com");
+    const { error } = await auth.signInWithGoogle();
+    if (error) {
+      setSignInError(error.message);
       setIsGoogleLoading(false);
-      setStep(2);
-    }, 650);
+    }
+    // On success the browser redirects — no need to reset loading state
   }
 
-  function handleEmailSignInContinue() {
+  async function handleEmailSignInContinue() {
     setSignInError("");
     if (!isValidEmailFormat(signInEmail)) {
       setSignInError("Enter a valid email address.");
       return;
     }
-    if (signInPassword.trim().length < 4) {
-      setSignInError("Password must be at least 4 characters (demo).");
+    if (signInPassword.trim().length < 6) {
+      setSignInError("Password must be at least 6 characters.");
       return;
     }
-    setProfileEmail(signInEmail.trim().toLowerCase());
-    setProfileFullName("");
+
+    const email = signInEmail.trim().toLowerCase();
+    const password = signInPassword.trim();
+
+    // Try sign in first, fall back to sign up
+    let result: Awaited<ReturnType<typeof auth.signIn>> | Awaited<ReturnType<typeof auth.signUp>> =
+      await auth.signIn(email, password);
+    if (result.error) {
+      result = await auth.signUp(email, password, "");
+    }
+    if (result.error) {
+      setSignInError(result.error.message);
+      return;
+    }
+
+    setProfileEmail(email);
+    setProfileFullName(result.data?.user?.user_metadata?.full_name ?? "");
     setStep(2);
   }
 

@@ -11,7 +11,7 @@ import { MetricCard } from "../components/dashboard/MetricCard";
 import { EmptyState } from "../components/state/EmptyState";
 import { LoadingState } from "../components/state/LoadingState";
 import { useOptimizationReview } from "../context/OptimizationReviewContext";
-import { getCurrentUser, getDashboardData } from "../services/mockApi";
+import { getCurrentUser, getDashboardData } from "../services/api";
 import type { DashboardResponse } from "../types/api";
 import type { UserProfile } from "../types/domain";
 import {
@@ -107,7 +107,7 @@ export function DashboardPage() {
     [user?.state]
   );
 
-  if (isLoading) {
+if (isLoading) {
     return <LoadingState title="Dashboard" description="Running the numbers…" />;
   }
 
@@ -124,7 +124,7 @@ export function DashboardPage() {
     );
   }
 
-  const firstName = user?.fullName.split(" ")[0] ?? "Creator";
+  const firstName = user?.fullName?.split(" ")[0] ?? "Creator";
   const bracketPct = user?.estimatedMarginalTaxRate
     ? `${(user.estimatedMarginalTaxRate * 100).toFixed(0)}%`
     : "";

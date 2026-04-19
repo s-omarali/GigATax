@@ -36,7 +36,7 @@ def save_onboarding(
             "integration_id": integration.get("id"),
             "name": integration.get("name"),
             "connected": integration.get("connected", False),
-        }).execute()
+        }, on_conflict="user_id,integration_id").execute()
 
     profile = sb.table("users").select("*").eq("id", user_id).single().execute().data
     integrations = sb.table("integrations").select("*").eq("user_id", user_id).execute().data or []

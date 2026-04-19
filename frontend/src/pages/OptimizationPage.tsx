@@ -6,7 +6,7 @@ import { OptimizationNudgeCard } from "../components/optimization/OptimizationNu
 import { EmptyState } from "../components/state/EmptyState";
 import { LoadingState } from "../components/state/LoadingState";
 import { useOptimizationReview } from "../context/OptimizationReviewContext";
-import { getCurrentUser, getDashboardData } from "../services/mockApi";
+import { getCurrentUser, getDashboardData } from "../services/api";
 import type { DashboardResponse } from "../types/api";
 import type { MealReviewItem, UserProfile } from "../types/domain";
 import {

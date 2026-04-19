@@ -3,13 +3,15 @@ import {
   ClipboardList,
   FileCheck2,
   FileSpreadsheet,
+  LogOut,
   ReceiptText,
 } from "lucide-react";
 import { GigaTaxWordmark } from "../branding/GigaTaxWordmark";
 import { useEffect, useMemo, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useOptimizationReview } from "../../context/OptimizationReviewContext";
-import { getCurrentUser, getDashboardData } from "../../services/mockApi";
+import { getCurrentUser, getDashboardData } from "../../services/api";
+import { auth } from "../../services/supabaseClient";
 import type { UserProfile } from "../../types/domain";
 import {
   countIncompleteOptimizationSignals,
@@ -47,10 +49,17 @@ export function AppShell() {
     return () => { alive = false; };
   }, []);
 
+  const navigate = useNavigate();
+
   const firstName = useMemo(() => {
     if (!user?.fullName) return null;
     return user.fullName.split(" ")[0];
   }, [user?.fullName]);
+
+  async function handleSignOut() {
+    await auth.signOut();
+    navigate("/start");
+  }
 
   return (
     <div
@@ -157,15 +166,21 @@ export function AppShell() {
             </nav>
 
             {/* Footer hint */}
-            <div className="px-5 py-4 border-t border-white/[0.05]">
+            <div className="px-5 py-4 border-t border-white/[0.05] flex items-center justify-between">
               <p className="text-[11px] text-[#555555] leading-relaxed">
                 Tax year <span className="text-[#888888] font-medium">2026</span>
                 {firstName ? (
-                  <>
-                    {" "}· <span className="text-[#888888]">{firstName}</span>
-                  </>
+                  <> · <span className="text-[#888888]">{firstName}</span></>
                 ) : null}
               </p>
+              <button
+                type="button"
+                onClick={() => void handleSignOut()}
+                className="flex items-center gap-1 text-[11px] text-[#555555] hover:text-[#EF4444] transition-colors"
+              >
+                <LogOut className="h-3 w-3" />
+                Sign out
+              </button>
             </div>
           </div>
         </aside>

@@ -2,7 +2,7 @@ import { ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
 import { LoadingState } from "../components/state/LoadingState";
 import { SuccessState } from "../components/state/SuccessState";
-import { getDashboardData } from "../services/mockApi";
+import { getDashboardData } from "../services/api";
 import type { DashboardResponse } from "../types/api";
 import { formatCurrency } from "../utils/taxMath";
 
