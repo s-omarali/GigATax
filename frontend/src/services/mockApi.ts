@@ -35,7 +35,27 @@ import {
   getEstimatedTaxSavings,
 } from "../utils/taxMath";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "https://hackmsa-2026-production.up.railway.app";
+const DEFAULT_API_BASE = "https://hackmsa-2026-production.up.railway.app";
+
+function resolveApiBaseUrl(): string {
+  const configured = (import.meta.env.VITE_API_BASE_URL ?? "").trim();
+  if (!configured) return DEFAULT_API_BASE;
+
+  const normalized = configured.replace(/\/+$/, "");
+  if (typeof window === "undefined") return normalized;
+
+  const isRemotePage = window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+  const pointsToLocal = /localhost|127\.0\.0\.1|\.railway\.internal/i.test(normalized);
+  const insecureOnHttps = window.location.protocol === "https:" && normalized.startsWith("http://");
+
+  if ((isRemotePage && pointsToLocal) || insecureOnHttps) {
+    return DEFAULT_API_BASE;
+  }
+
+  return normalized;
+}
+
+const API_BASE = resolveApiBaseUrl();
 const ALLOW_MOCK_FALLBACK = import.meta.env.VITE_ALLOW_MOCK_FALLBACK !== "false";
 
 async function getAuthHeaders(extraHeaders?: Record<string, string>): Promise<Record<string, string>> {

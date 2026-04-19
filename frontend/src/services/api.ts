@@ -22,7 +22,27 @@ import type {
 } from "../types/api";
 import type { FilingProfile, FilingRun, IntegrationConnection, UserProfile } from "../types/domain";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "https://hackmsa-2026-production.up.railway.app";
+const DEFAULT_BASE_URL = "https://hackmsa-2026-production.up.railway.app";
+
+function resolveApiBaseUrl(): string {
+  const configured = (import.meta.env.VITE_API_BASE_URL ?? "").trim();
+  if (!configured) return DEFAULT_BASE_URL;
+
+  const normalized = configured.replace(/\/+$/, "");
+  if (typeof window === "undefined") return normalized;
+
+  const isRemotePage = window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+  const pointsToLocal = /localhost|127\.0\.0\.1|\.railway\.internal/i.test(normalized);
+  const insecureOnHttps = window.location.protocol === "https:" && normalized.startsWith("http://");
+
+  if ((isRemotePage && pointsToLocal) || insecureOnHttps) {
+    return DEFAULT_BASE_URL;
+  }
+
+  return normalized;
+}
+
+const BASE_URL = resolveApiBaseUrl();
 
 async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const authHeaders = await getAuthHeaders();
