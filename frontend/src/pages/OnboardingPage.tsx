@@ -210,6 +210,7 @@ export function OnboardingPage() {
 
   // Step 7 — confirmation
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -422,16 +423,26 @@ export function OnboardingPage() {
   async function handleFinish() {
     const derivedAnnualIncome = estimateAnnualIncomeFromGigs(selectedGigs);
     setIsSaving(true);
-    await saveOnboarding({
-      fullName: profileFullName.trim(),
-      email: profileEmail.trim().toLowerCase(),
-      gigs: selectedGigs,
-      integrations,
-      state: residenceState,
-      estimatedAnnualIncome: derivedAnnualIncome,
-    });
-    setIsSaving(false);
-    setStep(7);
+    setSaveError("");
+    try {
+      await saveOnboarding({
+        fullName: profileFullName.trim(),
+        email: profileEmail.trim().toLowerCase(),
+        gigs: selectedGigs,
+        integrations,
+        state: residenceState,
+        estimatedAnnualIncome: derivedAnnualIncome,
+      });
+      setStep(7);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "We couldn't finish onboarding right now. Please try again."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   const totalDetectedIncome = forms
@@ -1157,6 +1168,12 @@ export function OnboardingPage() {
               <p className="text-center text-[12px]" style={{ color: "#555555" }}>
                 No 1099s yet? You can upload them later from the Receipt Capture page.
               </p>
+
+              {saveError ? (
+                <p className="text-center text-[12px]" style={{ color: "#F87171" }}>
+                  {saveError}
+                </p>
+              ) : null}
 
               {/* Actions */}
               <div className="flex gap-3">
