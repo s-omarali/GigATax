@@ -1,9 +1,11 @@
 import { Bot, TrendingDown, TrendingUp } from "lucide-react";
-import type { Transaction } from "../../types/domain";
+import type { Transaction, TransactionCategory } from "../../types/domain";
 import { formatCurrency } from "../../utils/taxMath";
 
 interface CategorizationFeedProps {
   transactions: Transaction[];
+  selectedCategory: "All" | TransactionCategory;
+  onSelectCategory: (category: "All" | TransactionCategory) => void;
 }
 
 const CATEGORY_COLORS: Record<string, { text: string; bg: string }> = {
@@ -23,7 +25,19 @@ const SOURCE_LABELS: Record<string, string> = {
   receipt: "OCR scan",
 };
 
-export function CategorizationFeed({ transactions }: CategorizationFeedProps) {
+export function CategorizationFeed({ transactions, selectedCategory, onSelectCategory }: CategorizationFeedProps) {
+  const categories: Array<"All" | TransactionCategory> = [
+    "All",
+    "Income",
+    "Software",
+    "Travel",
+    "Meals",
+    "Vehicle",
+    "Home Office",
+    "Supplies",
+    "Uncategorized",
+  ];
+
   return (
     <section className="bento-card flex flex-col" style={{ padding: "20px 20px" }}>
       {/* Header */}
@@ -46,8 +60,37 @@ export function CategorizationFeed({ transactions }: CategorizationFeedProps) {
         </div>
       </div>
 
+      <div className="mb-4 flex flex-wrap gap-2">
+        {categories.map((category) => {
+          const active = category === selectedCategory;
+          return (
+            <button
+              key={category}
+              type="button"
+              className="chip"
+              onClick={() => onSelectCategory(category)}
+              style={
+                active
+                  ? { background: "rgba(59,130,246,0.2)", color: "#3B82F6", border: "1px solid rgba(59,130,246,0.45)" }
+                  : { background: "rgba(255,255,255,0.04)", color: "#888888", border: "1px solid rgba(255,255,255,0.08)" }
+              }
+            >
+              {category}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Feed rows */}
       <div className="flex-1 space-y-1.5 overflow-y-auto">
+        {transactions.length === 0 && (
+          <div
+            className="rounded-xl px-4 py-3 text-[12px]"
+            style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", color: "#888888" }}
+          >
+            No activity for this category yet.
+          </div>
+        )}
         {transactions.map((txn) => {
           const cat = CATEGORY_COLORS[txn.category] ?? CATEGORY_COLORS.Uncategorized;
           const isIncome = txn.type === "income";

@@ -55,10 +55,33 @@ export interface FilingRunStartPayload {
   provider: FilingRun["provider"];
 }
 
+export interface PlaidLinkTokenResponse {
+  link_token: string;
+  expiration: string;
+}
+
+export interface PlaidExchangeRequest {
+  public_token: string;
+}
+
+export interface PlaidExchangeResponse {
+  item_id: string;
+  request_id?: string;
+}
+
+export interface PlaidSyncResponse {
+  synced_item_ids: string[];
+  total_added: number;
+}
+
 export const API_ROUTES = {
   me: "/api/v1/me",
   dashboard: "/api/v1/dashboard",
+  integrationDefaults: "/api/v1/integrations/defaults",
   onboarding: "/api/v1/onboarding",
+  plaidLinkToken: "/api/v1/plaid/link-token",
+  plaidExchange: "/api/v1/plaid/exchange",
+  plaidSyncAll: "/api/v1/plaid/sync-all",
   receiptScan: "/api/v1/receipts/scan",
   optimizationMileage: "/api/v1/optimization/mileage",
   filingPreparation: "/api/v1/filing/preparation",

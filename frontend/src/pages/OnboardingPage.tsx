@@ -16,9 +16,16 @@ import {
   Zap,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePlaidLink } from "react-plaid-link";
 import { useNavigate } from "react-router-dom";
 import { gigOptions } from "../data/mockData";
-import { getIntegrationDefaults, saveOnboarding } from "../services/mockApi";
+import {
+  createPlaidLinkToken,
+  exchangePlaidPublicToken,
+  getIntegrationDefaults,
+  saveOnboarding,
+  syncAllPlaidTransactions,
+} from "../services/mockApi";
 import type { IntegrationConnection, UserProfile } from "../types/domain";
 
 // ── Icon map ──────────────────────────────────────────────────────────────
@@ -77,6 +84,8 @@ export function OnboardingPage() {
 
   // Step 2
   const [integrations, setIntegrations] = useState<IntegrationConnection[]>([]);
+  const [plaidLinkToken, setPlaidLinkToken] = useState<string | null>(null);
+  const [isPlaidConnecting, setIsPlaidConnecting] = useState(false);
 
   // Step 3 — 1099 uploads
   const [forms, setForms] = useState<Form1099[]>([]);
@@ -113,6 +122,57 @@ export function OnboardingPage() {
     setIntegrations((prev) =>
       prev.map((i) => (i.id === id ? { ...i, connected: !i.connected } : i))
     );
+  }
+
+  const onPlaidSuccess = useCallback(async (publicToken: string) => {
+    await exchangePlaidPublicToken({ public_token: publicToken });
+    await syncAllPlaidTransactions();
+
+    setIntegrations((prev) =>
+      prev.map((integration) =>
+        integration.id === "bank"
+          ? { ...integration, connected: true, lastSyncAt: new Date().toISOString() }
+          : integration
+      )
+    );
+
+    setIsPlaidConnecting(false);
+    setPlaidLinkToken(null);
+  }, []);
+
+  const { open: openPlaid, ready: plaidReady } = usePlaidLink({
+    token: plaidLinkToken,
+    onSuccess: (publicToken) => {
+      void onPlaidSuccess(publicToken);
+    },
+    onExit: () => {
+      setIsPlaidConnecting(false);
+    },
+  });
+
+  useEffect(() => {
+    if (!plaidLinkToken || !plaidReady || !isPlaidConnecting) return;
+    openPlaid();
+  }, [isPlaidConnecting, openPlaid, plaidLinkToken, plaidReady]);
+
+  async function handleIntegrationConnect(integration: IntegrationConnection) {
+    if (integration.id !== "bank") {
+      toggleIntegration(integration.id);
+      return;
+    }
+
+    if (integration.connected) {
+      toggleIntegration(integration.id);
+      return;
+    }
+
+    try {
+      setIsPlaidConnecting(true);
+      const tokenResponse = await createPlaidLinkToken();
+      setPlaidLinkToken(tokenResponse.link_token);
+    } catch {
+      setIsPlaidConnecting(false);
+    }
   }
 
   // ── 1099 upload logic ─────────────────────────────────────────────────
@@ -334,6 +394,7 @@ export function OnboardingPage() {
                   const connected = integration.connected;
                   // Pick a platform icon by id
                   const PlatformIcon = {
+                    bank: Link2,
                     youtube: Video,
                     paypal:  Sparkles,
                     stripe:  BarChart3,
@@ -367,7 +428,8 @@ export function OnboardingPage() {
                         </div>
                       </div>
                       <button
-                        onClick={() => toggleIntegration(integration.id)}
+                        onClick={() => void handleIntegrationConnect(integration)}
+                        disabled={isPlaidConnecting && integration.id === "bank"}
                         className="flex flex-shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-[12px] font-semibold transition-all duration-150 active:scale-[0.96]"
                         style={
                           connected
@@ -376,7 +438,11 @@ export function OnboardingPage() {
                         }
                       >
                         <Link2 className="h-3.5 w-3.5" />
-                        {connected ? "Connected" : "Connect"}
+                        {isPlaidConnecting && integration.id === "bank"
+                          ? "Connecting..."
+                          : connected
+                            ? "Connected"
+                            : "Connect"}
                       </button>
                     </div>
                   );
