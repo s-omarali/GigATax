@@ -1,20 +1,25 @@
-import { Play, Save } from "lucide-react";
+import { ArrowRight, Play, Save, ShieldCheck } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { LoadingState } from "../components/state/LoadingState";
 import { SuccessState } from "../components/state/SuccessState";
 import {
   approveCurrentFilingStep,
+  getDashboardData,
   getFilingPreparationDefaults,
   saveFilingPreparation,
   startFilingRun,
 } from "../services/api";
+import type { DashboardResponse } from "../types/api";
 import type { FilingProfile, FilingRun } from "../types/domain";
+import { formatCurrency } from "../utils/taxMath";
 
 interface ExtendedFilingProfile extends FilingProfile {
   ssn: string;
 }
 
 export function FilingPrepPage() {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [profile, setProfile] = useState<ExtendedFilingProfile | null>(null);
   const [provider, setProvider] = useState<FilingRun["provider"]>("TurboTax");
   const [isLoading, setIsLoading] = useState(true);
@@ -26,9 +31,13 @@ export function FilingPrepPage() {
     let active = true;
     async function load() {
       setIsLoading(true);
-      const defaults = await getFilingPreparationDefaults();
+      const [defaults, review] = await Promise.all([
+        getFilingPreparationDefaults(),
+        getDashboardData(),
+      ]);
       if (!active) return;
       setProfile({ ...defaults, ssn: `***-**-${defaults.ssnLast4}` });
+      setDashboard(review);
       setIsLoading(false);
     }
     void load();
@@ -59,26 +68,117 @@ export function FilingPrepPage() {
     setRun(updated);
   }
 
-  if (isLoading || !profile) return <LoadingState title="Filing prep" description="Crunching…" />;
+  if (isLoading || !profile || !dashboard) return <LoadingState title="Filing prep" description="Crunching…" />;
 
   const inputStyle = "giga-input";
   const labelStyle = "text-[12px] font-medium block mb-1.5";
+  const totalExpenses = dashboard.transactions
+    .filter((t) => t.type === "expense")
+    .reduce((sum, t) => sum + t.amount, 0);
 
   return (
     <div className="space-y-6 animate-rise">
-      <div>
-        <p className="text-[11px] font-extrabold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(59,130,246,0.85)" }}>
-          Last few things before you&apos;re done
-        </p>
-        <h1 className="text-[1.65rem] font-extrabold text-[#EDEDED] leading-tight">
-          Filing information
-        </h1>
-        <p className="text-[13px] mt-2" style={{ color: "#888888" }}>
-          Encrypted in transit and at rest. We treat tax data like financial data — because it is.
-        </p>
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em]">
+        <span
+          className={`rounded-lg px-2.5 py-1 ${step === 1 ? "text-[#0a0a0f]" : "text-[#888888]"}`}
+          style={{ background: step === 1 ? "#00FF85" : "rgba(255,255,255,0.06)" }}
+        >
+          Step 1: Final review
+        </span>
+        <span style={{ color: "#555555" }}>→</span>
+        <span
+          className={`rounded-lg px-2.5 py-1 ${step === 2 ? "text-[#0a0a0f]" : "text-[#888888]"}`}
+          style={{ background: step === 2 ? "#3B82F6" : "rgba(255,255,255,0.06)" }}
+        >
+          Step 2: Filing changes
+        </span>
       </div>
 
-      <section className="bento-card grid gap-4 sm:grid-cols-2" style={{ padding: "24px" }}>
+      {step === 1 ? (
+        <>
+          <div>
+            <p className="text-[11px] font-extrabold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(0,255,133,0.75)" }}>
+              Final pass
+            </p>
+            <h1 className="text-[1.6rem] font-extrabold text-[#EDEDED] leading-tight">Review before you file</h1>
+            <p className="text-[13px] mt-2" style={{ color: "#888888" }}>
+              Income, expenses, and deductions in one place so you can sign off with confidence.
+            </p>
+          </div>
+
+          <section className="grid gap-6 sm:grid-cols-3">
+            {[
+              { label: "Total income", value: formatCurrency(dashboard.metrics.totalIncome), color: "#00FF85" },
+              { label: "Categorized expenses", value: formatCurrency(totalExpenses), color: "#EDEDED" },
+              { label: "What you owe (estimate)", value: formatCurrency(dashboard.metrics.estimatedTaxLiability), color: "#F59E0B" },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="bento-card" style={{ padding: "22px" }}>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: "#888888" }}>{label}</p>
+                <p className="mn text-[1.5rem] font-bold leading-none" style={{ color }}>{value}</p>
+              </div>
+            ))}
+          </section>
+
+          <section className="bento-card" style={{ padding: "24px" }}>
+            <h2 className="text-[15px] font-extrabold text-[#EDEDED] mb-4">How much you saved</h2>
+            <div className="space-y-2">
+              {dashboard.deductions.map((ded) => (
+                <div
+                  key={ded.id}
+                  className="flex items-center justify-between rounded-xl px-4 py-3"
+                  style={{
+                    background: "rgba(255,255,255,0.025)",
+                    border: "1px solid rgba(255,255,255,0.06)",
+                  }}
+                >
+                  <div>
+                    <p className="text-[13px] font-medium text-[#EDEDED]">{ded.title}</p>
+                    <p className="text-[11px]" style={{ color: "#666666" }}>{ded.detail}</p>
+                  </div>
+                  <p className="mn text-[14px] font-semibold" style={{ color: "#00FF85" }}>
+                    +{formatCurrency(ded.potentialSavings)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div className="relative">
+            <div
+              className="pointer-events-none absolute inset-0 rounded-2xl blur-2xl"
+              style={{ background: "rgba(0,255,133,0.2)", transform: "scale(1.03)" }}
+            />
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="relative w-full flex items-center justify-center gap-3 rounded-2xl py-5 text-[16px] font-extrabold tracking-tight transition-all duration-150 active:scale-[0.99] hover:brightness-110"
+              style={{
+                background: "#00FF85",
+                color: "#0a0a0f",
+                boxShadow: "0 0 48px rgba(0,255,133,0.35), 0 8px 24px rgba(0,0,0,0.5)",
+              }}
+            >
+              <ShieldCheck className="h-5 w-5" />
+              Looks good — continue to filing changes
+              <ArrowRight className="h-5 w-5" />
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div>
+            <p className="text-[11px] font-extrabold tracking-[0.1em] uppercase mb-1" style={{ color: "rgba(59,130,246,0.85)" }}>
+              Last few things before you&apos;re done
+            </p>
+            <h1 className="text-[1.65rem] font-extrabold text-[#EDEDED] leading-tight">
+              Filing changes
+            </h1>
+            <p className="text-[13px] mt-2" style={{ color: "#888888" }}>
+              Encrypted in transit and at rest. We treat tax data like financial data because it is.
+            </p>
+          </div>
+
+          <section className="bento-card grid gap-4 sm:grid-cols-2" style={{ padding: "24px" }}>
         <label>
           <span className={labelStyle} style={{ color: "#888888" }}>Legal name</span>
           <input
@@ -129,9 +229,9 @@ export function FilingPrepPage() {
             className={inputStyle}
           />
         </label>
-      </section>
+          </section>
 
-      <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={() => void handleSave()}
           disabled={isSaving}
@@ -155,9 +255,9 @@ export function FilingPrepPage() {
           <option value="TurboTax">TurboTax</option>
           <option value="FreeTaxUSA">FreeTaxUSA</option>
         </select>
-      </div>
+          </div>
 
-      <div className="relative">
+          <div className="relative">
         <div
           className="pointer-events-none absolute inset-0 rounded-2xl blur-2xl"
           style={{ background: "rgba(0,255,133,0.2)", transform: "scale(1.02)" }}
@@ -175,16 +275,16 @@ export function FilingPrepPage() {
           <Play className="h-5 w-5" />
           File Taxes — start session
         </button>
-      </div>
+          </div>
 
-      {saved && (
+          {saved && (
         <SuccessState
           title="Nice. Saved."
           description="When you're ready, start the filing session below — we'll walk each step with you."
         />
-      )}
+          )}
 
-      {run && (
+          {run && (
         <section className="bento-card space-y-5" style={{ padding: "24px" }}>
           <div className="flex items-center justify-between">
             <div>
@@ -250,6 +350,19 @@ export function FilingPrepPage() {
             <SuccessState title="All set." description="All filing steps are approved. We'll notify you if anything changes." />
           )}
         </section>
+          )}
+
+          <div>
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="text-[12px] font-semibold"
+              style={{ color: "#888888" }}
+            >
+              Back to final review
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

@@ -1,7 +1,6 @@
 import {
   BarChart3,
   ClipboardList,
-  FileCheck2,
   FileSpreadsheet,
   LogOut,
   ReceiptText,
@@ -22,8 +21,7 @@ const navItems = [
   { to: "/dashboard",    label: "Dashboard",       icon: BarChart3,    activeEmoji: "📊" },
   { to: "/receipts",     label: "Receipt Capture", icon: ReceiptText,  activeEmoji: "🧾" },
   { to: "/optimization", label: "Optimization",    icon: ClipboardList, activeEmoji: "⚡" },
-  { to: "/review",       label: "Final Review",    icon: FileCheck2,   activeEmoji: "✅" },
-  { to: "/filing-prep",  label: "Filing Prep",     icon: FileSpreadsheet, activeEmoji: "📄" },
+  { to: "/filing-prep",  label: "Review and File", icon: FileSpreadsheet, activeEmoji: "✅" },
 ];
 
 export function AppShell() {

@@ -4,7 +4,6 @@ import { AppShell } from "./components/layout/AppShell";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { FilingPrepPage } from "./pages/FilingPrepPage";
-import { FinalReviewPage } from "./pages/FinalReviewPage";
 import { LandingPage } from "./pages/LandingPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { OptimizationPage } from "./pages/OptimizationPage";
@@ -22,7 +21,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/receipts" element={<ReceiptCapturePage />} />
         <Route path="/optimization" element={<OptimizationPage />} />
-        <Route path="/review" element={<FinalReviewPage />} />
+        <Route path="/review" element={<FilingPrepPage />} />
         <Route path="/filing-prep" element={<FilingPrepPage />} />
       </Route>
 
