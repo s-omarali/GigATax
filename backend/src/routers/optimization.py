@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import uuid
 from typing import Any
 
 from fastapi import APIRouter, Header
 
 from backend.db import get_supabase
+from backend.src.ai.categorizer import categorize_transaction, discover_deductions
 from backend.src.routers.deps import get_user_id
 from backend.src.schemas.requests import MileagePayload
 
@@ -42,3 +44,74 @@ def optimize_mileage(
         "allowedDeductionAmount": allowed_deduction,
         "taxSavingsClaimed": tax_savings,
     }
+
+
+@router.post("/transactions/categorize")
+def categorize_transactions(
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Categorize all uncategorized transactions for the user using Gemini."""
+    user_id = get_user_id(authorization)
+    sb = get_supabase()
+
+    user = sb.table("users").select("gigs").eq("id", user_id).single().execute().data or {}
+    gigs = user.get("gigs", [])
+
+    transactions = (
+        sb.table("transactions")
+        .select("id, merchant, amount")
+        .eq("user_id", user_id)
+        .eq("category", "Uncategorized")
+        .execute()
+        .data or []
+    )
+
+    updated = []
+    for tx in transactions:
+        ai = categorize_transaction(tx["merchant"], tx["amount"], gigs)
+        sb.table("transactions").update({
+            "category": ai["category"],
+            "confidence_score": ai["confidence_score"],
+            "type": ai["type"],
+        }).eq("id", tx["id"]).execute()
+        updated.append({"id": tx["id"], **ai})
+
+    return {"categorized": len(updated), "results": updated}
+
+
+@router.post("/optimization/discover")
+def discover_deductions_endpoint(
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Use Gemini to discover deductions from the user's full transaction history."""
+    user_id = get_user_id(authorization)
+    sb = get_supabase()
+
+    user = sb.table("users").select("gigs").eq("id", user_id).single().execute().data or {}
+    gigs = user.get("gigs", [])
+
+    transactions = (
+        sb.table("transactions")
+        .select("merchant, amount, category")
+        .eq("user_id", user_id)
+        .execute()
+        .data or []
+    )
+
+    deductions = discover_deductions(transactions, gigs)
+
+    saved = []
+    for d in deductions:
+        deduction_id = f"{user_id}-{d['category'].lower()}-{str(uuid.uuid4())[:8]}"
+        sb.table("deductions").upsert({
+            "id": deduction_id,
+            "user_id": user_id,
+            "title": d["title"],
+            "category": d["category"],
+            "status": "available",
+            "potential_savings": d["potential_savings"],
+            "detail": d["detail"],
+        }).execute()
+        saved.append(d)
+
+    return {"discovered": len(saved), "deductions": saved}

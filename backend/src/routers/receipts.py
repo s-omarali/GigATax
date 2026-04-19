@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Header
 
 from backend.db import get_supabase
+from backend.src.ai.categorizer import categorize_transaction
 from backend.src.routers.deps import get_user_id
 from backend.src.schemas.requests import ReceiptScanPayload
 
@@ -20,16 +21,21 @@ def scan_receipt(
     user_id = get_user_id(authorization)
     sb = get_supabase()
 
-    hint = payload.fileName.lower()
-    suggested_category = "Travel" if "uber" in hint or "lyft" in hint else "Supplies"
+    user = sb.table("users").select("gigs").eq("id", user_id).single().execute().data or {}
+    gigs = user.get("gigs", [])
+
+    merchant = payload.merchant or "Scanned Merchant"
+    amount = payload.amount or 0.0
+
+    ai = categorize_transaction(merchant, amount, gigs)
 
     receipt = {
         "id": str(uuid.uuid4()),
         "user_id": user_id,
-        "merchant": payload.merchant or "Scanned Merchant",
-        "amount": payload.amount or 0.0,
+        "merchant": merchant,
+        "amount": amount,
         "date": payload.date or "",
-        "category": payload.suggestedCategory or suggested_category,
+        "category": ai["category"],
     }
     sb.table("receipts").insert(receipt).execute()
 
@@ -37,5 +43,8 @@ def scan_receipt(
         "merchant": receipt["merchant"],
         "amount": receipt["amount"],
         "date": receipt["date"],
-        "suggestedCategory": receipt["category"],
+        "suggestedCategory": ai["category"],
+        "confidenceScore": ai["confidence_score"],
+        "deductible": ai["deductible"],
+        "reason": ai["reason"],
     }
