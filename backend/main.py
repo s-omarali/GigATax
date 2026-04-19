@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,9 +9,24 @@ from backend.src.routers import dashboard, filing, onboarding, optimization, pla
 
 app = FastAPI(title="GigATax API", version="0.1.0")
 
+default_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://hackmsa-2026-tawny.vercel.app",
+]
+
+env_origins = [
+    origin.strip()
+    for origin in os.getenv("CORS_ALLOW_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
+allow_origins = list(dict.fromkeys([*default_origins, *env_origins]))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=allow_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
