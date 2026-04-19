@@ -1,12 +1,12 @@
 import {
   avgGasPriceByState2025,
+  getMockTransactionsForGigs,
   mockDeductions,
   mockFilingProfile,
   mockFilingRun,
   mockIntegrations,
   mockMetrics,
   mockOptimizationSignals,
-  mockTransactions,
   mockUser,
 } from "../data/mockData";
 import type {
@@ -23,6 +23,8 @@ import type {
   ReceiptScanResponse,
 } from "../types/api";
 import type { DashboardMetrics, FilingRun, IntegrationConnection, Transaction, UserProfile } from "../types/domain";
+import { API_ROUTES } from "../types/api";
+import { supabase } from "../lib/supabaseClient";
 import { getStateTaxContext } from "../utils/stateTaxContext";
 import {
   estimateMilesFromGasSpend,
@@ -99,8 +101,8 @@ function sumIncomeFromTransactions(transactions: Transaction[]): number {
 }
 
 /** Dashboard metrics scale from profile + static mock transactions (demo). */
-function buildDashboardMetrics(profile: UserProfile): DashboardMetrics {
-  const txnIncome = sumIncomeFromTransactions(mockTransactions);
+function buildDashboardMetrics(profile: UserProfile, transactions: Transaction[]): DashboardMetrics {
+  const txnIncome = sumIncomeFromTransactions(transactions);
   const annual = Math.max(0, profile.estimatedAnnualIncome);
   const blendedIncome = Math.round(Math.max(txnIncome, annual));
 
@@ -148,10 +150,12 @@ export async function getDashboardData(): Promise<DashboardResponse> {
     }
   }
 
+  const gigTransactions = getMockTransactionsForGigs(currentMockProfile.gigs);
+
   return withLatency(
     {
-      metrics: buildDashboardMetrics(currentMockProfile),
-      transactions: mockTransactions,
+      metrics: buildDashboardMetrics(currentMockProfile, gigTransactions),
+      transactions: gigTransactions,
       deductions: mockDeductions,
       optimizationSignals: mockOptimizationSignals,
     },

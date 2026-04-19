@@ -13,14 +13,13 @@ import { LoadingState } from "../components/state/LoadingState";
 import { useOptimizationReview } from "../context/OptimizationReviewContext";
 import { getCurrentUser, getDashboardData } from "../services/mockApi";
 import type { DashboardResponse } from "../types/api";
-import type { Transaction, TransactionCategory, UserProfile } from "../types/domain";
+import type { UserProfile } from "../types/domain";
 import {
   countIncompleteOptimizationSignals,
   estimatePendingOptimizationTaxSavingsUpperBound,
   incompleteOptimizationSignals,
   mergeOptimizationCompletion,
 } from "../utils/optimizationSignals";
-import { mockTransactionsByCategory } from "../data/mockData";
 import { getStateTaxContext } from "../utils/stateTaxContext";
 import { formatCurrency } from "../utils/taxMath";
 
@@ -30,7 +29,6 @@ export function DashboardPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [selectedFeedCategory, setSelectedFeedCategory] = useState<"All" | TransactionCategory>("All");
 
   const mergedOptimizationSignals = useMemo(
     () => mergeOptimizationCompletion(dashboard?.optimizationSignals ?? [], completedIds),
@@ -108,29 +106,6 @@ export function DashboardPage() {
     () => getStateTaxContext(user?.state ?? "TX"),
     [user?.state]
   );
-
-  const aiFeedTransactions = useMemo<Transaction[]>(() => {
-    if (selectedFeedCategory === "All") {
-      return Object.values(mockTransactionsByCategory)
-        .flat()
-        .sort((a, b) => b.date.localeCompare(a.date));
-    }
-    return mockTransactionsByCategory[selectedFeedCategory] ?? [];
-  }, [selectedFeedCategory]);
-
-  function asTransactionCategory(value: string): TransactionCategory | null {
-    const categories: TransactionCategory[] = [
-      "Income",
-      "Software",
-      "Travel",
-      "Meals",
-      "Vehicle",
-      "Home Office",
-      "Supplies",
-      "Uncategorized",
-    ];
-    return categories.includes(value as TransactionCategory) ? (value as TransactionCategory) : null;
-  }
 
   if (isLoading) {
     return <LoadingState title="Dashboard" description="Running the numbers…" />;

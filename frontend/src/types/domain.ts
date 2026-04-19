@@ -8,6 +8,7 @@ export type TransactionCategory =
   | "Vehicle"
   | "Home Office"
   | "Supplies"
+  | "Personal"
   | "Uncategorized";
 
 export interface Transaction {
