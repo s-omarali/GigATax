@@ -17,7 +17,7 @@ def main() -> int:
     check_database_connectivity()
     print("Startup DB check passed. Launching FastAPI with uvicorn...")
 
-    app_target = os.getenv("APP_MODULE", "main:app")
+    app_target = os.getenv("APP_MODULE", "backend.main:app")
     host = os.getenv("HOST", "127.0.0.1")
     port = os.getenv("PORT", "8000")
 
