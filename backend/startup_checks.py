@@ -34,13 +34,25 @@ def _load_env() -> None:
 def check_database_connectivity() -> None:
     _load_env()
 
-    url = os.getenv("SUPABASE_URL", "").strip()
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    url = (
+        os.getenv("SUPABASE_URL", "").strip()
+        or os.getenv("SUPABASE_PROJECT_URL", "").strip()
+    )
+    key = (
+        os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+        or os.getenv("SUPABASE_SERVICE_ROLE", "").strip()
+        or os.getenv("SUPABASE_SECRET_KEY", "").strip()
+    )
 
     if not url or not key:
+        missing = []
+        if not url:
+            missing.append("SUPABASE_URL")
+        if not key:
+            missing.append("SUPABASE_SERVICE_ROLE_KEY")
         raise RuntimeError(
-            "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env. "
-            "Create a Supabase project and copy the credentials into backend/.env."
+            f"Missing required env vars: {', '.join(missing)}. "
+            "Set them in Railway service Variables (or backend/.env locally)."
         )
 
     try:

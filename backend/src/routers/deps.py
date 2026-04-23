@@ -19,7 +19,7 @@ def get_user_id(authorization: str | None) -> str:
     except KeyError as exc:
         raise HTTPException(
             status_code=500,
-            detail="Server auth misconfiguration (missing Supabase env vars)",
+            detail=f"Server auth misconfiguration: {exc}",
         ) from exc
     except Exception as exc:
         logger.exception("Supabase token verification failed in get_user_id: %s", exc)
@@ -37,7 +37,7 @@ def get_auth_user(authorization: str | None):
     except KeyError as exc:
         raise HTTPException(
             status_code=500,
-            detail="Server auth misconfiguration (missing Supabase env vars)",
+            detail=f"Server auth misconfiguration: {exc}",
         ) from exc
     except Exception as exc:
         logger.exception("Supabase token verification failed in get_auth_user: %s", exc)
