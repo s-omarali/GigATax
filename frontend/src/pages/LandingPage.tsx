@@ -17,11 +17,6 @@ function bentoPanelClass(extra = "") {
   return `border border-white/[0.06] ring-1 ring-white/[0.08] bg-white/[0.02] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_30px_rgba(0,0,0,0.28)] transition-all duration-200 hover:border-white/[0.12] hover:ring-white/[0.14] hover:bg-white/[0.03] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_16px_34px_rgba(0,0,0,0.34)] ${extra}`.trim();
 }
 
-function scrollToId(hash: string) {
-  const id = hash.replace(/^#/, "");
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
 export function LandingPage() {
   return (
     <div className="min-h-screen scroll-smooth text-fg overflow-x-hidden bg-[#0a0a0a]">
@@ -50,29 +45,21 @@ export function LandingPage() {
         </Link>
 
         <nav className="flex flex-wrap items-center justify-end gap-x-6 gap-y-2 text-[13px] font-sans text-fg-muted" aria-label="Marketing">
-          <a
-            href="#pricing"
-            className="hover:text-fg transition-colors duration-200"
-            onClick={(e) => {
-              e.preventDefault();
-              scrollToId("pricing");
-            }}
-          >
-            Pricing
-          </a>
           <Link
-            to="/start"
+            to="/waitlist"
             className="inline-flex items-center justify-center rounded-lg px-[18px] py-2 text-[14px] font-semibold font-sans tracking-normal bg-green text-[#04140e] transition-all duration-200 hover:opacity-95 hover:shadow-[0_0_0_1px_rgba(0,255,133,0.45),0_8px_28px_rgba(0,255,133,0.22)] active:scale-[0.99]"
           >
-            Start for free
+            Save now
           </Link>
         </nav>
       </header>
 
       <main className="relative z-10 pt-[72px] sm:pt-[80px]">
+        {/* First viewport: hero + marquee; marquee sits at bottom of screen on load */}
+        <div className="flex min-h-[calc(100dvh-72px)] sm:min-h-[calc(100dvh-80px)] flex-col">
         {/* Hero — no status pill, no arcade duplicate; breathing room above headline */}
         <section
-          className="relative isolate px-5 sm:px-8 lg:px-10 pt-20 sm:pt-24 pb-14 max-w-[1100px] mx-auto overflow-hidden"
+          className="relative isolate flex min-h-0 flex-1 flex-col px-5 sm:px-8 lg:px-10 pt-20 sm:pt-24 pb-6 sm:pb-8 max-w-[1100px] mx-auto w-full overflow-hidden"
           aria-labelledby="landing-hero-title"
         >
           <div className="pointer-events-none absolute inset-0 -z-10" aria-hidden>
@@ -114,14 +101,14 @@ export function LandingPage() {
 
           <div className="flex flex-wrap gap-4 items-center">
             <Link
-              to="/start"
+              to="/waitlist"
               className="inline-flex items-center justify-center rounded-lg px-8 py-3.5 text-[16px] font-semibold font-sans bg-green text-[#04140e] transition-all duration-200 hover:opacity-95 hover:shadow-[0_0_0_1px_rgba(0,255,133,0.45),0_10px_30px_rgba(0,255,133,0.24)] active:scale-[0.99]"
             >
-              Get your money back →
+              Join the Waitlist
             </Link>
           </div>
 
-          <p className="font-mono text-[11px] mt-8 tracking-wide text-fg-faint max-w-md">
+          <p className="font-mono text-[11px] mt-8 tracking-wide text-fg-faint max-w-md pb-8 sm:pb-10 md:pb-12">
             // No CPA required. No spreadsheets. No crying.
           </p>
 
@@ -129,7 +116,7 @@ export function LandingPage() {
 
         {/* Single full-bleed marquee — neon #00FF85 only */}
         <div
-          className="relative left-1/2 w-screen max-w-[100vw] -translate-x-1/2 border-y border-white/[0.05] bg-[#050505] py-3.5 overflow-x-hidden"
+          className="relative left-1/2 mt-auto w-screen max-w-[100vw] -translate-x-1/2 shrink-0 border-y border-white/[0.05] bg-[#050505] py-3.5 overflow-x-hidden"
           aria-hidden
         >
           <div className="flex w-max animate-landing-marquee" style={{ animationDuration: "22s" }}>
@@ -149,6 +136,7 @@ export function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
         </div>
 
         {/* Problem */}
@@ -230,89 +218,6 @@ export function LandingPage() {
                 )}
               </div>
             ))}
-          </div>
-        </section>
-
-        {/* Pricing */}
-        <section id="pricing" className="px-5 sm:px-8 lg:px-10 py-20 sm:py-24 max-w-[1100px] mx-auto scroll-mt-28">
-          <p className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-green mb-4">// Pricing</p>
-          <h2 className="font-display font-extrabold text-[clamp(2rem,5vw,3.25rem)] tracking-[-0.04em] leading-tight text-fg mb-6 text-balance max-w-[16ch] sm:max-w-none">
-            We won&apos;t nickel
-            <br />
-            and <em className="text-green not-italic">dime you.</em>
-          </h2>
-          <p className="font-sans text-[17px] max-w-[40rem] mb-12 leading-relaxed text-fg-muted">
-            We only make money when you do. Your fee is based on how much your return saves you.
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className={`rounded-xl p-8 sm:p-9 relative ${bentoPanelClass()}`}>
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] mb-4 text-fg-muted">// Under $1,000 saved</p>
-              <p className="mn font-display font-extrabold text-5xl tracking-tight text-fg leading-none mb-1 tabular-nums">$0</p>
-              <p className="font-mono text-[13px] mb-8 text-fg-faint">free tier</p>
-              <ul className="list-none m-0 p-0 mb-8 space-y-2">
-                {["Tax return savings under $1,000", "No platform fee", "Plain English support"].map((li) => (
-                  <li key={li} className="flex gap-2.5 font-sans text-[14px] py-2 border-b border-white/[0.06] text-fg-muted">
-                    <span className="text-green font-mono text-xs shrink-0 mt-0.5">→</span>
-                    {li}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/start"
-                className="block w-full text-center rounded-lg py-3 text-[15px] font-semibold font-sans border border-white/[0.12] text-fg hover:bg-white/[0.05] hover:border-white/[0.2] transition-all duration-200 active:scale-[0.99]"
-              >
-                Start free
-              </Link>
-            </div>
-
-            <div className={`rounded-xl p-8 sm:p-9 relative ${bentoPanelClass("border-green/35 ring-1 ring-green/15")}`}>
-              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 font-mono text-[10px] font-medium px-3 py-1 rounded-full whitespace-nowrap tracking-wide bg-green text-[#04140e] border border-white/[0.08]">
-                most popular
-              </div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] mb-4 text-fg-muted">// $1,000-$10,000 saved</p>
-              <p className="mn font-display font-extrabold text-5xl tracking-tight text-fg leading-none mb-1 tabular-nums">2.5%</p>
-              <p className="font-mono text-[13px] mb-8 text-fg-faint">flat fee on return savings</p>
-              <ul className="list-none m-0 p-0 mb-8 space-y-2">
-                {[
-                  "Applied when savings are $1,000-$10,000",
-                  "Single flat 2.5% rate",
-                  "No monthly subscription",
-                  "Pay only when you benefit",
-                ].map((li) => (
-                  <li key={li} className="flex gap-2.5 font-sans text-[14px] py-2 border-b border-white/[0.06] text-fg-muted">
-                    <span className="text-green font-mono text-xs shrink-0 mt-0.5">→</span>
-                    {li}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/start"
-                className="block w-full text-center rounded-lg py-3 text-[15px] font-semibold font-sans bg-green text-[#04140e] border border-green hover:opacity-95 hover:shadow-[0_0_0_1px_rgba(0,255,133,0.45),0_8px_24px_rgba(0,255,133,0.22)] transition-all duration-200 active:scale-[0.99]"
-              >
-                Get the good one →
-              </Link>
-            </div>
-
-            <div className={`rounded-xl p-8 sm:p-9 relative ${bentoPanelClass()}`}>
-              <p className="font-mono text-[11px] uppercase tracking-[0.14em] mb-4 text-fg-muted">// Above $10,000 saved</p>
-              <p className="mn font-display font-extrabold text-5xl tracking-tight text-fg leading-none mb-1 tabular-nums">3%</p>
-              <p className="font-mono text-[13px] mb-8 text-fg-faint">flat fee on return savings</p>
-              <ul className="list-none m-0 p-0 mb-8 space-y-2">
-                {["Applied when savings are above $10,000", "Single flat 3% rate", "No monthly subscription", "Built for larger returns", "Aligned with your upside"].map((li) => (
-                  <li key={li} className="flex gap-2.5 font-sans text-[14px] py-2 border-b border-white/[0.06] text-fg-muted">
-                    <span className="text-green font-mono text-xs shrink-0 mt-0.5">→</span>
-                    {li}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/start"
-                className="block w-full text-center rounded-lg py-3 text-[15px] font-semibold font-sans border border-white/[0.12] text-fg hover:bg-white/[0.05] hover:border-white/[0.2] transition-all duration-200 active:scale-[0.99]"
-              >
-                Go pro
-              </Link>
-            </div>
           </div>
         </section>
 
