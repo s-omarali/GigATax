@@ -44,9 +44,9 @@ function resolveApiBaseUrl(): string {
 
 const BASE_URL = resolveApiBaseUrl();
 
-async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const authHeaders = await getAuthHeaders();
-  const res = await fetch(`${BASE_URL}${path}`, {
+async function requestWithAuth(path: string, init: RequestInit, forceRefresh = false): Promise<Response> {
+  const authHeaders = await getAuthHeaders(forceRefresh);
+  return fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
@@ -54,6 +54,13 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
       ...(init.headers ?? {}),
     },
   });
+}
+
+async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  let res = await requestWithAuth(path, init, false);
+  if (res.status === 401) {
+    res = await requestWithAuth(path, init, true);
+  }
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
     throw new Error(`API ${path} failed (${res.status}): ${text}`);
