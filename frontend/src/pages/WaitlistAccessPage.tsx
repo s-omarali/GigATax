@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { GigaTaxWordmark } from "../components/branding/GigaTaxWordmark";
+import { joinWaitlist, verifyAccessCode } from "../services/api";
 
 const surfaceClass =
   "rounded-xl border border-white/[0.06] ring-1 ring-white/[0.08] bg-white/[0.02] backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_30px_rgba(0,0,0,0.28)]";
@@ -16,6 +17,7 @@ export function WaitlistAccessPage() {
   const [authorizedPassword, setAuthorizedPassword] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
   const [redirectCountdown, setRedirectCountdown] = useState(5);
+  const [accessError, setAccessError] = useState("");
   const hasWaitlistEmail = waitlistEmail.trim().length > 0;
   const hasAuthorizedPassword = authorizedPassword.trim().length > 0;
 
@@ -30,10 +32,16 @@ export function WaitlistAccessPage() {
     };
   }, []);
 
-  function handleWaitlistSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleWaitlistSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (waitlistSubmitted || !hasWaitlistEmail) {
       return;
+    }
+
+    try {
+      await joinWaitlist(waitlistEmail);
+    } catch {
+      // fail silently — UX still shows success
     }
 
     if (redirectTimeoutRef.current !== null) {
@@ -58,11 +66,18 @@ export function WaitlistAccessPage() {
     }, 5000);
   }
 
-  function handleAuthorizedSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleAuthorizedSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!hasAuthorizedPassword) {
       return;
     }
+    setAccessError("");
+    const ok = await verifyAccessCode(authorizedPassword);
+    if (!ok) {
+      setAccessError("Invalid access code");
+      return;
+    }
+    sessionStorage.setItem("access_granted", "true");
     navigate("/start");
   }
 
@@ -155,6 +170,9 @@ export function WaitlistAccessPage() {
                   onChange={(event) => setAuthorizedPassword(event.target.value)}
                 />
               </label>
+              {accessError && (
+                <p className="font-sans text-[13px] text-red-400">{accessError}</p>
+              )}
               <button
                 type="submit"
                 disabled={!hasAuthorizedPassword}
