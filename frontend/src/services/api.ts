@@ -201,3 +201,22 @@ export async function exchangePlaidPublicToken(payload: PlaidExchangeRequest): P
 export async function syncAllPlaidTransactions(): Promise<PlaidSyncResponse> {
   return apiFetch<PlaidSyncResponse>("/api/v1/plaid/sync", { method: "POST" });
 }
+
+export async function joinWaitlist(email: string): Promise<{ message: string }> {
+  const res = await fetch(`${BASE_URL}/api/v1/waitlist`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) throw new Error("Failed to join waitlist");
+  return res.json();
+}
+
+export async function verifyAccessCode(code: string): Promise<boolean> {
+  const res = await fetch(`${BASE_URL}/api/v1/access/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  return res.ok;
+}

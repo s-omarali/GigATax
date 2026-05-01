@@ -39,3 +39,11 @@ class FilingPreparationPayload(BaseModel):
 
 class FilingRunPayload(BaseModel):
     provider: str
+
+
+class WaitlistJoinPayload(BaseModel):
+    email: str
+
+
+class AccessVerifyPayload(BaseModel):
+    code: str

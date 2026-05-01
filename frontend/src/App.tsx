@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { AccessGuard } from "./components/AccessGuard";
 import { RequireAuth } from "./components/auth/RequireAuth";
 import { AppShell } from "./components/layout/AppShell";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
@@ -15,7 +16,7 @@ function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/waitlist" element={<WaitlistAccessPage />} />
-      <Route path="/start" element={<OnboardingPage />} />
+      <Route path="/start" element={<AccessGuard><OnboardingPage /></AccessGuard>} />
       <Route path="/onboarding" element={<Navigate to="/start" replace />} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
 

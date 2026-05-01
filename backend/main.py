@@ -5,7 +5,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.src.routers import dashboard, filing, onboarding, optimization, plaid, receipts, users
+from backend.src.routers import access, dashboard, filing, onboarding, optimization, plaid, receipts, users, waitlist
 
 app = FastAPI(title="GigATax API", version="0.1.0")
 
@@ -39,6 +39,8 @@ app.include_router(plaid.router)
 app.include_router(receipts.router)
 app.include_router(optimization.router)
 app.include_router(filing.router)
+app.include_router(waitlist.router)
+app.include_router(access.router)
 
 
 @app.get("/health")
